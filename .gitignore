@@ -1,0 +1,36 @@
+# Python / 本地环境
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.coverage
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# 编辑器 / 系统
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# 大数据：约 17 GB，用 world.gen.datagen2 重生成
+data/
+
+# 模型权重：走 GitHub Release 或 Git LFS
+*.pt
+*.pth
+results/checkpoints/
+results/rounds/**/ckpt/
+runs/**/ckpt/
+runs/**/*.pt
+
+# 旧结果归档（约 43 MB）
+results/archive/
+
+# NEURON 编译产物（平台相关）
+neuron/mods/x86_64/
+
+# 临时文件
+*.tmp
+tmp/

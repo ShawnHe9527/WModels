@@ -1,0 +1,34 @@
+{
+ "t2v5_events": {
+  "n_trials": 12,
+  "n_true_peaks": 3,
+  "n_pred_peaks": 3,
+  "n_matched": 2,
+  "peak_precision": 0.6666666666666666,
+  "peak_recall": 1.0,
+  "peak_f1": 0.8,
+  "amp_ratio": 0.90157151222229,
+  "amp_ratio_iqr": NaN,
+  "dt_ms": 2.4875,
+  "slope": 1.2104185937638157,
+  "r_event": 0.8053472476199444,
+  "r_all": 0.9461654705873295,
+  "nrmse": 0.3021527826786041
+ },
+ "t2v5_events_w5a2": {
+  "n_trials": 12,
+  "n_true_peaks": 3,
+  "n_pred_peaks": 2,
+  "n_matched": 1,
+  "peak_precision": 0.5,
+  "peak_recall": 1.0,
+  "peak_f1": 0.6666666666666666,
+  "amp_ratio": 1.2969669103622437,
+  "amp_ratio_iqr": NaN,
+  "dt_ms": 1.975,
+  "slope": 0.9829251049112032,
+  "r_event": 0.41284395667594453,
+  "r_all": 0.7380648251324596,
+  "nrmse": 0.43379737436771393
+ }
+}
