@@ -157,8 +157,8 @@ runs/<YYYY-MM-DD>-<commit7>/
 
 1. **一个实验一个目录，不覆盖**。重跑用新日期/新后缀，例如 `2026-10-27-abc1234-r5`。
 2. `commit7` 取 `git rev-parse --short=7 HEAD`；当前仓库已初始化 git（`main`），
-   `origin` 指向 `https://github.com/ShawnHe9527/WModels.git`。首次 push 仍需要
-   PAT/SSH 认证；在认证完成前，本地 commit 的 7 位 hash 可直接用，不要用 `nogit`。
+   `origin` 指向 `https://github.com/ShawnHe9527/WModels.git`，`main` 已 push。
+   本机可直接 `git push`；新机器需要 PAT/SSH。不要再用 `nogit`。
 3. `config.yaml` 必须足以复现：数据目录、seed、`tier`、`d_z`、`hidden`、`lr`、`batch`、
    `length`、CL 课程参数、`event_weight`、`anchor_*`、评测视界、ckpt 来源。
 4. `metrics.json` 必须同时保留总体和 `linear/inter/plateau` 分档；发散点标 `diverged: true`，

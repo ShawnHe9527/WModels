@@ -95,8 +95,8 @@ R2 的完整 `model/L0`（总体）：
 - **没有启动 R5**；下一步方向未确认（见第 6 节）
 - **完整结果叙述文档尚未写**：当前入口是 `results/rounds/README.md` + R2/R3/R4 的 `CONCLUSIONS.md`；`DESIGN_v4.md` 原先引用的 `EXPERIMENTS_RESULTS.md` 不存在，引用已改到 `results/rounds/README.md`
 - **`runs/` 规范尚未落地**：目录未创建，训练代码也还不能直接写 `runs/`；目前只是文档规范，需要人工包装
-- **本地 git 已初始化**：`main` 分支，`origin` = `https://github.com/ShawnHe9527/WModels.git`；
-  尚未完成首次 push（缺 PAT/SSH），`commit7` 可用本地 hash，不再用 `nogit`
+- **GitHub 已上传**：`main` 已 push 到 `https://github.com/ShawnHe9527/WModels.git`；
+  首个 commit `f201cf3`（164 个文件，9.9 MB）；`data/`、`results/checkpoints/`、`results/archive/`、`*.pt` 均未上传
 
 ## 4. 关键决策与理由
 
@@ -129,7 +129,8 @@ R2 的完整 `model/L0`（总体）：
 
 8. **`datagen2 --resume` 不可复现**：续跑只把 `Policy2` 的 RNG 重放 `done` 次，但原循环还消耗了 `make_spike_trains` / `make_tuft_bundles` / `make_bap_times` 的 RNG；断点后的协议与一次跑完不一致。此外 `th_arr` 续跑时没有加载旧值。
 9. **内存护栏未真正接入训练循环**：`--mem-mb` 只传给 `safety.preflight()` 打印；实测训练 RSS 3.4–4.0 GB，`MemGuard` 没有在 step 循环里 `check()`。
-10. **首次 push 未完成**：本地 git 已初始化并有 commit，但还没有配置 PAT/SSH；GitHub 远程仍是空仓库。
+10. **权重没有进 GitHub**：`.gitignore` 排除了 `results/checkpoints/`、`*.pt`、`results/rounds/**/ckpt/`；
+   当前 R2 权重只在本地，需用 GitHub Release 附件或 Git LFS 分享。
 11. **`runs/` 规范未落地**：`train2` 仍写 `results/checkpoints/<run>`；要满足 `runs/<date>-<commit7>/` 需要人工建目录、写 config/metrics、复制 ckpt。
 12. **完整结果文档缺失**：只有 `results/rounds/README.md` 索引与 R2/R3/R4 的人工结论；R0/R1/R1b 没有 `CONCLUSIONS.md`，也没有统一叙述版 `EXPERIMENTS_RESULTS.md`。
 13. **`world/gen/secinfo.py` 仍有旧辅助函数**：`new_cell`/`read_state` 等不是 v4 主路径，且内部还有相对路径 `morphologies/cell1.asc`、`L5PC_exp`；当前只通过 `sim2.theta()` 调 `build_theta`，暂未清理，避免影响 θ 提取。
@@ -142,7 +143,7 @@ R2 的完整 `model/L0`（总体）：
    - A. 输出标定（训练后逐因子线性/分段校准，压 `V_max` 过冲；R4 结论推荐先做 B 类“训练后标定”）
    - B. 长程正则（在 k>4000 的 rollout 上惩罚 `|Δs|` 二阶差分，直接压发散）
    - C. 先修 T1 的 `s0` 目标 + `datagen2 --resume`，再重跑对照（更偏工程正确性）
-3. **`runs/` 规范怎么落地？** git 已初始化；是否要先完成首次 push，再建一个不改训练代码的 shell 包装器？
+3. **`runs/` 规范怎么落地？** GitHub 已上传；是否现在建一个不改训练代码的 shell 包装器？
 4. **R0–R4 是否回填 `runs/`？** 还是保留在 `results/rounds/` 作为历史布局，新实验才用 `runs/`？
 5. **是否补 L1/L2/L3 基线？** 若补，需确认定义（逐协议均值 / 岭回归 / 逐维 AR(1)）与配对评测方式；这会改变“赢”的结论口径。
 6. **是否新建 `EXPERIMENTS_RESULTS.md`？** 当前引用已改到 `results/rounds/README.md`；若需要论文式叙述版，放在根目录还是 `results/`？
