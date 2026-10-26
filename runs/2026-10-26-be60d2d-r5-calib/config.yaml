@@ -1,0 +1,36 @@
+experiment: r5-zero-training-calibration
+date: 2026-10-26
+commit: be60d2df88497ca3620074f6985b1feb991c7816
+goal: >
+  Try to fix R2's V/Ca amplitude overshoot without retraining. Fit a
+  rest-relative per-factor gain on va_s2 (V and cai only), then apply it to
+  the unseen te_s4 split. No checkpoint is modified.
+
+data:
+  fit: va_s2
+  eval: te_s4
+  tier: t2
+  t0: 4000
+  horizons_steps: [2000, 8000]
+  n_fit: 128
+  n_eval: 128
+  batch: 16
+
+model:
+  name: R2_last
+  ckpt: t2v5_events/last.pt
+
+calibration:
+  method: rest_relative_gain
+  factors: [V, cai]
+  V_rest_mV: -76.0
+  cai_rest: 20th percentile of true cai
+  alpha_clip: [0.5, 1.5]
+  fit_scope: plateau trials only
+
+success:
+  V_max: 13-17 mV
+  ca_peak_f1: ">= 0.30 (or not below 0.294)"
+  model_L0_at_2000: "<= 0.58"
+  model_L0_at_8000: "<= 1.00, no DIVERGED"
+  if_fail: train R5 amplitude soft constraint (one variable)

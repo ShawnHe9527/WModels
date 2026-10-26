@@ -89,12 +89,41 @@ R2 的完整 `model/L0`（总体）：
   - 三组数据可加载：`200 × 40000 × 85`，`th=(200,27)` ✅
   - `tools.rounds_index`、`tools.fig_rounds_summary` 可重生成 ✅
 
+### 2.5 评估闸门与 R5 零训练标定（2026-10-26）
+
+**环境**：WSL2 Ubuntu 22.04，20 逻辑核，MemAvailable ≈ 6.1 GB，磁盘 ≈ 981 GB；
+`tools/v0_check --n 1` 通过（5.2 s/trial，5 门禁 1/1）。  
+⚠️ `tools/verify_env.py` 仍按旧目录布局写，v4 下 10/13 失败（找不到 `mods/`、`morphologies/`、`probes/`）；
+这是工具过时，不是环境不可用；以 `v0_check` 为准。
+
+**评估闸门**（`runs/2026-10-26-be60d2d-eval-gate/`）：
+
+- `va_s2`：128 trial × 2 个 t0（4000/16000），256 个配对样本；R2_last 在全部视界都优于 R0–R4。
+- R2_last：k=200 **0.511** [0.457,0.580]，k=2000 **0.497** [0.422,0.580]，k=8000 **0.849** [0.733,0.983]。
+- R2_best：k=8000 **1.970**（2/256 DIV）；R1 2.606；R4 2.713（33/256 DIV）。⇒ **用 last.pt，不用 best.pt**。
+- `te_s4`（新盲测，seed=4）：R2_last k=200 **0.562**，k=2000 **0.594**，k=8000 **0.899** [0.783,1.031]；R2_best k=8000 2.022（4/256 DIV）。
+- **闸门结论：条件通过**。R2 是当前最好的模型，短/中程（≤50 ms）在 va 和 blind te_s4 上都赢 L0/L1/L2/L3；
+  但 **200 ms 不稳健**：k=8000 的 95% CI 在 te_s4 包含 1，且 L2 ridge 更好（va 0.820，te_s4 0.869 vs R2 0.849/0.899）；
+  L1 是非因果上界，也更好（0.632/0.693）。不能再说“所有视界都赢全部基线”。
+
+**te_s4**：200 条 × 40000 帧，16.8 min，plateau 45.5%（略高于 45%），trial 门禁 88%；
+数据已接受、未用测试集调参；`data/te_s4` 未进 Git。
+
+**R5 零训练标定**（`runs/2026-10-26-be60d2d-r5-calib/`）：**失败**。
+
+- 在 va_s2 上按 plateau trial 拟合 rest-relative gain（V 以 −76 mV、cai 以 20 分位为基线）；
+- 拟合得到 V gain **1.067**、cai gain **1.000**（没有压缩）；
+- 在 te_s4 的 128 trial 上：Vmax 17.49 → **23.72**（真值 19.81）；Ca 峰 F1 0.224 → **0.224**；
+- model/L0 @2000 0.536 → 0.537，@8000 0.721 → 0.726；
+- 结论：**全局/逐因子线性标定不能解决幅度问题**，且 `Vmax 13–17 mV` 这个判据不跨数据集成立（te_s4 真值 Vmax 已 19.81）。
+  需要训练侧改动，或重新定义物理判据。
+
 ## 3. 进行中
 
-- **没有训练/评测进程在跑**；最后一次训练是 2026-10-23 20:43（R4）
-- **没有启动 R5**；下一步方向未确认（见第 6 节）
+- **没有训练/评测进程在跑**；最后一次训练仍是 2026-10-23 20:43（R4）
+- **R5 零训练标定已做并失败**；训练回退（幅度软约束）尚未启动，等待确认损失/λ/判据
 - **完整结果叙述文档尚未写**：当前入口是 `results/rounds/README.md` + R2/R3/R4 的 `CONCLUSIONS.md`；`DESIGN_v4.md` 原先引用的 `EXPERIMENTS_RESULTS.md` 不存在，引用已改到 `results/rounds/README.md`
-- **`runs/` 规范尚未落地**：目录未创建，训练代码也还不能直接写 `runs/`；目前只是文档规范，需要人工包装
+- **`runs/` 已开始使用**：`eval-gate` 与 `r5-calib` 两个目录已有 commit/config/metrics/stdout；但训练代码仍写 `results/checkpoints/`，需人工复制
 - **GitHub 已上传**：`main` 已 push 到 `https://github.com/ShawnHe9527/WModels.git`；
   首个 commit `f201cf3`（164 个文件，9.9 MB）；`data/`、`results/checkpoints/`、`results/archive/`、`*.pt` 均未上传
 
@@ -117,13 +146,13 @@ R2 的完整 `model/L0`（总体）：
 
 ### 5.1 科学/模型
 
-1. **R2 的 V 上限过冲**：19.7 mV vs 真值 13.35（+47%）；原因与 `event-weight=10` 把事件幅度学大有关（R3 降到 5 又变成 10.8，方向对但过头）。
-2. **R2 的 Ca 峰 F1 只有 0.294**（R4 0.324 更高）；R2 固定阈值 P/R 为 0.696/0.867（k=2000），但无阈值峰指标仍偏低，两个口径不能混用。
-3. **R2 的 linear 档在 k≥4000 输给 L0**（1.089 / 1.720）；当前判断是该档没有可学结构，但还没有正式定论。
+1. **R2 的 V 上限过冲**：在 te_s3 上 19.7 mV vs 真值 13.35（+47%）；R3 降到 5 又变成 10.8（方向对但过头）。但在 blind te_s4 的 128 trial 上真值 Vmax 已是 19.81，说明“13–17 mV”不是跨数据集的固定判据。
+2. **R2 的 Ca 峰 F1 偏低**：te_s3 0.294，blind te_s4 0.224（R4 在 te_s3 0.324 更高）；固定阈值 P/R 为 0.696/0.867（k=2000），与无阈值峰指标不能混用。
+3. **R2 长程不稳健**：va_s2 k=8000=0.849 [0.733,0.983]，te_s4 k=8000=0.899 [0.783,1.031]（CI 含 1）；L2 ridge 更好（0.820/0.869），L1 非因果上界也更好（0.632/0.693）。linear 档在 te_s3 k=4000/8000 为 1.089/1.720，va k=8000 为 2.077。
 4. **R4 长程发散**：2/43 plateau trial 到 3.8e18；R4 的 `anchor-cl=0.1` + `event-weight=8` 组合不稳定。
-5. **只有 L0 基线**：`train2 eval` 只算复制上帧；设计文档要求的 L1（逐协议均值）、L2（岭回归）、L3（逐维 AR(1)）目前没有实现，不能声称“赢过 L1–L3”。
+5. **`train2 eval` 仍只有 L0**：新 `tools/eval_gate.py` 已实现 L1（逐 trial 均值，非因果）、L2（岭回归）、L3（逐维 AR(1)），但训练/归档流程尚未接入；不能只用 `train2 eval` 声称“赢过 L1–L3”。
 6. **T1 的 target 可疑**：`train2.py` 的 T1 用 `s0` 在整段窗口重复作为重构目标（`s_flat = s0.expand(...)`），注释却写“逐帧重构”；这会让 encoder 倾向忽略 `u`，尚未做对照实验确认影响。
-7. **`va_s2` plateau 48.5% > 45% 门限**：数据已接受，但 `datagen2` 会返回 1；`run_v4.sh v3` 在 `set -euo pipefail` 下会在 va_s2 后停住。
+7. **数据集门禁略超上界**：`va_s2` plateau 48.5%、`te_s4` 45.5%（目标 15–45%）；两者数据均已接受并记录，未按测试集调参。`datagen2` 仍会返回 1，`run_v4.sh v3` 在 va_s2 后会停。
 
 ### 5.2 工程/复现
 
@@ -131,35 +160,62 @@ R2 的完整 `model/L0`（总体）：
 9. **内存护栏未真正接入训练循环**：`--mem-mb` 只传给 `safety.preflight()` 打印；实测训练 RSS 3.4–4.0 GB，`MemGuard` 没有在 step 循环里 `check()`。
 10. **权重没有进 GitHub**：`.gitignore` 排除了 `results/checkpoints/`、`*.pt`、`results/rounds/**/ckpt/`；
    当前 R2 权重只在本地，需用 GitHub Release 附件或 Git LFS 分享。
-11. **`runs/` 规范未落地**：`train2` 仍写 `results/checkpoints/<run>`；要满足 `runs/<date>-<commit7>/` 需要人工建目录、写 config/metrics、复制 ckpt。
+11. **`runs/` 规范只部分落地**：`eval-gate` / `r5-calib` 已有 commit/config/metrics/stdout；但 `train2` 仍写 `results/checkpoints/<run>`，训练实验需要人工建目录、复制 ckpt。
 12. **完整结果文档缺失**：只有 `results/rounds/README.md` 索引与 R2/R3/R4 的人工结论；R0/R1/R1b 没有 `CONCLUSIONS.md`，也没有统一叙述版 `EXPERIMENTS_RESULTS.md`。
 13. **`world/gen/secinfo.py` 仍有旧辅助函数**：`new_cell`/`read_state` 等不是 v4 主路径，且内部还有相对路径 `morphologies/cell1.asc`、`L5PC_exp`；当前只通过 `sim2.theta()` 调 `build_theta`，暂未清理，避免影响 θ 提取。
 14. **`run_v4.sh v5` 仍是初始基线配置**，不是 R2；当前最优的完整命令只写在 `results/rounds/R2_event_weighting/CONCLUSIONS.md`，脚本与最优配置尚未统一。
+15. **`tools/verify_env.py` 过时**：仍按旧根目录布局找 `mods/`、`morphologies/`、`probes/`，v4 下 10/13 失败；环境是否可用以 `tools/v0_check` 为准。
+16. **R5 零训练标定失败**：rest-relative gain 拟合出 V=1.067、cai=1.000；te_s4 上 Vmax 17.49→23.72（真值 19.81），Ca 峰 F1 0.224→0.224，model/L0 几乎不变。全局线性标定不能解决幅度问题。
 
 ## 6. 待确认问题
 
-1. **R2 是否作为当前基线冻结？** 若是，R5 应该只沿一个方向走；若否，先回到 R1/R2 之间做对照。
-2. **R5 先做哪个方向？** 目前有三个候选，尚未确认：
-   - A. 输出标定（训练后逐因子线性/分段校准，压 `V_max` 过冲；R4 结论推荐先做 B 类“训练后标定”）
-   - B. 长程正则（在 k>4000 的 rollout 上惩罚 `|Δs|` 二阶差分，直接压发散）
-   - C. 先修 T1 的 `s0` 目标 + `datagen2 --resume`，再重跑对照（更偏工程正确性）
-3. **`runs/` 规范怎么落地？** GitHub 已上传；是否现在建一个不改训练代码的 shell 包装器？
+1. **R2 是否作为当前基线冻结？** 评估闸门确认 R2_last 是当前最好的模型，但 200 ms 不稳健（te_s4 CI 含 1，L2 更好）。是否接受“R2 只赢短/中程，200 ms 交给 L2/后续 R6”？
+2. **R5 训练回退怎么做？** 零训练标定已失败；需要确认训练侧改动：
+   - A. 幅度软约束：`L_amp = λ·relu(|Δŝ_cai| - k·|Δs_cai|)^2`（R4 结论推荐，最小改动）
+   - B. 长程正则（直接压 k>4000 发散）
+   - C. 先修 T1 `s0` target / `datagen2 --resume`，再重跑对照
+   需要你定 λ、k 和判据；我未改 `train2.py`。
+3. **`runs/` 规范怎么落地？** 已有两个 run 目录；是否现在建一个不改训练代码的 shell 包装器？
 4. **R0–R4 是否回填 `runs/`？** 还是保留在 `results/rounds/` 作为历史布局，新实验才用 `runs/`？
-5. **是否补 L1/L2/L3 基线？** 若补，需确认定义（逐协议均值 / 岭回归 / 逐维 AR(1)）与配对评测方式；这会改变“赢”的结论口径。
+5. **L1/L2/L3 定义是否接受？** `tools/eval_gate.py` 当前：L1=逐 trial 全轨迹均值（非因果上界），L2=岭回归 `[s_t,u_t,θ]→s_{t+k}`，L3=逐维 AR(1)。若定义要改，历史结论需重算。
 6. **是否新建 `EXPERIMENTS_RESULTS.md`？** 当前引用已改到 `results/rounds/README.md`；若需要论文式叙述版，放在根目录还是 `results/`？
 7. **归档是否永久删除？** `archive/legacy_v3` + `results/archive/legacy_v3` 约 43 MB；当前保留可追溯，确认后可删。
 8. **`run_v4.sh v5` 是否改成 R2 配置？** 改成 R2 会覆盖/重训当前最优，需明确“复现”还是“新实验”。
+9. **物理判据要不要改？** `Vmax 13–17 mV` 在 te_s4 不成立（真值 19.81）；是否改成 `pred_Vmax/true_Vmax ∈ [0.8,1.2]` + Ca 峰 F1 + 长期 vs L2？改判据需要你确认。
 
-## 7. 下一步最小验证（待确认后执行）
+## 7. 下一步（待确认后执行）
 
-如果先做 R5 方向 A（输出标定），最小验证不需要重训：
+### 7.1 已完成的标定（失败）
 
-1. 载入 R2 `t2v5_events/last.pt`，在 `va_s2` 上取 plateau trial，估逐因子 `cai/V` 的线性标定 `α, β`；
-2. 在 `te_s3` 上配对比较标定前后 `V_max`、Ca 峰 F1、model/L0；
-3. 若 `V_max` 进入 13–17 且 F1 不降，再考虑写进推理路径；否则回到 R5 方向 B。
+R5 零训练标定已经在 `runs/2026-10-26-be60d2d-r5-calib/` 执行：
 
-如果先做方向 C（工程正确性），最小验证是：
+- va_s2 拟合 rest-relative gain：V=1.067、cai=1.000；
+- te_s4 128 trial：Vmax 17.49→23.72（真值 19.81），Ca F1 0.224→0.224；
+- model/L0 @2000 0.536→0.537，@8000 0.721→0.726。
 
-1. 用同一 seed 生成 6 条 trial，跑一次完整与一次“前 3 条 + resume 后 3 条”，比较 `meta.json` 的 policy 与 `u.dat` 是否逐位一致；
-2. 用 4 个窗口比较 T1 target=`s0` 与 target=`s_true` 的重构误差；
-3. 只记录，不改训练，等确认后再修。
+⇒ **零训练标定失败，不能靠输出缩放解决幅度问题。**
+
+### 7.2 R5 训练回退（建议，未执行）
+
+建议只改一个变量：在 R2 配置上加入 **幅度软约束**，不碰事件权重、anchor-cl、数据：
+
+```
+L = L_R2 + λ · mean( relu(|Δcai_pred| - k·|Δcai_true|)^2 )
+```
+
+- 目的：只惩罚“比真值更陡”的 cai 变化，压事件幅度过冲，不改事件/静止帧配比；
+- 建议起点：`λ=0.1`、`k=1.0`，只在闭环段（cl>0）生效；其余参数与 R2 完全一致；
+- 预算：9000 步，约 52 min，RSS 3.4–4.0 GB，单进程；
+- 成功判据（**待你确认**）：
+  - te_s4 k=2000/8000 的 model/L0 不比 R2 差 >0.02；
+  - k=8000 不 DIV，且不劣于 L2（te_s4 当前 L2=0.869）；
+  - `pred_Vmax/true_Vmax ∈ [0.8,1.2]`（不再用绝对的 13–17 mV）；
+  - Ca 峰 F1 不低于 R2（te_s3 0.294 / te_s4 0.224）。
+- 失败预案：回退 R2，不再连续调 λ；转为检查 L2 基线与长程正则。
+
+### 7.3 工程修复（与 R5 分开）
+
+1. 修 `datagen2 --resume` 的 RNG/`th_arr`；
+2. 用 4 个窗口对照 T1 target=`s0` 与 `s_true`，确认后再决定是否重训 T1；
+3. 把 `MemGuard.check()` 接进训练循环；
+4. 把 `train2` 的输出接入 `runs/<date>-<commit7>/`（或写一个 shell 包装器）。

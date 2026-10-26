@@ -1,0 +1,47 @@
+experiment: eval-gate
+date: 2026-10-26
+commit: be60d2df88497ca3620074f6985b1feb991c7816
+goal: >
+  Re-evaluate R0-R4 on the validation set (va_s2) instead of the already-used
+  test set te_s3; add L1/L2/L3 baselines; evaluate R2 best/last; check a second
+  time window. This is a measurement gate, no training.
+
+data:
+  split: va_s2
+  tier: t2
+  dt_ms: 0.025
+  n_trials: 128
+  t0_steps: [4000, 16000]
+  horizons_steps: [10, 40, 200, 1000, 2000]
+
+models:
+  - name: R0
+    ckpt: t2v4_anchor/last.pt
+  - name: R1
+    ckpt: t2v5_ancC/last.pt
+  - name: R1b
+    ckpt: t2v5_noancC/last.pt
+  - name: R2_last
+    ckpt: t2v5_events/last.pt
+  - name: R2_best
+    ckpt: t2v5_events/best.pt
+  - name: R3
+    ckpt: t2v5_events_w5a2/last.pt
+  - name: R4
+    ckpt: t2v5_events_w8/last.pt
+
+baselines:
+  - L0_persistence_initial
+  - L1_per_trial_mean_noncausal
+  - L2_ridge_from_s_u_theta
+  - L3_per_dim_AR1
+
+selection_rule:
+  primary: R2 must remain the best R0-R4 on va_s2 at k=200 and k=2000
+  long_horizon: R2 must be < 1.0 overall at k=2000 and not DIVERGED
+  blind_test: te_s4 (seed=4) will be generated only after this gate passes
+  do_not_select_on: te_s3
+
+outputs:
+  metrics_json: metrics.json
+  stdout: stdout.log

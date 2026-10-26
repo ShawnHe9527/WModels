@@ -1,0 +1,34 @@
+──────────────────────────────────────────────────────────────────────────────
+资源预检
+  CPU 逻辑核        : 20
+  BLAS/OMP 线程     : 4
+  本进程 RSS        : 274 MB (护栏 3000 MB)
+  系统可用内存      : 6139 MB
+  磁盘剩余          : 975 GB
+  判定              : ✅ 可运行
+──────────────────────────────────────────────────────────────────────────────
+载入 t2v5_events/last.pt  σ=0.000310
+fit va_s2: n=128 t0=4000
+  t0=4000 off=0 n=16 plateau=4
+  t0=4000 off=16 n=16 plateau=5
+  t0=4000 off=32 n=16 plateau=2
+  t0=4000 off=48 n=16 plateau=2
+  t0=4000 off=64 n=16 plateau=5
+  t0=4000 off=80 n=16 plateau=3
+  t0=4000 off=96 n=16 plateau=3
+  t0=4000 off=112 n=16 plateau=4
+calibration gain/rest: V=(1.0666613742868105, -0.7252559206051103), cai=(0.9999295473098755, 0.26687315106391907)
+eval te_s4: n=128 t0=4000
+  t0=4000 off=0 n=16 plateau=5
+  t0=4000 off=16 n=16 plateau=3
+  t0=4000 off=32 n=16 plateau=3
+  t0=4000 off=48 n=16 plateau=3
+  t0=4000 off=64 n=16 plateau=3
+  t0=4000 off=80 n=16 plateau=5
+  t0=4000 off=96 n=16 plateau=1
+  t0=4000 off=112 n=16 plateau=6
+=> runs/2026-10-26-be60d2d-r5-calib/metrics.json
+k=2000: before 0.536 [0.449,0.640]  after 0.537 [0.450,0.640]
+k=8000: before 0.721 [0.599,0.880]  after 0.726 [0.604,0.885]
+Vmax: before 17.49 after 23.72 true 19.81
+Ca F1: before 0.224 after 0.224

@@ -91,6 +91,9 @@ $PY -m tools.v0_check --n 2 --seed 99 --mem-mb 2000
 
 如果只改文档/README，也必须至少跑第 2 项，确认没有误改 import。
 
+> ⚠️ `tools/verify_env.py` 目前仍按旧根目录布局找 `mods/`、`morphologies/`、`probes/`，
+> 在 v4 下会 10/13 失败；**不要把它当成当前门禁**。环境可用性以 `tools/v0_check` 为准。
+
 ### 3.3 出图/汇总
 
 ```bash
