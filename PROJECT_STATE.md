@@ -219,7 +219,6 @@ R2 的完整 `model/L0`（总体）：
 17. **R5-H1 视界 pilot 失败**：L=512/cl=128 只跑 2000 步就评估，te_s4 k=2000 2.025、k=8000 2.960（R2 0.594/0.899）；单步 σ=0.000437（R2 0.000310）。既有欠训练，也有压缩课程/长闭环不稳定，不能当成干净的“视界有害”证据。
 18. **R5-B 事件中心采样 + V 加权失败**：9000 步后 te_s4 k=2000 1.414（B_last）/0.973（B_best），k=8000 3.199/1.858（R2 0.594/0.899）；B_last 28/256 发散；Vmax 28.82（真值 19.81），Ca F1 0.163（R2 0.329）。事件片段过拟合 + V 加权放大陡变，未解决长程。
 19. **迁移准备**：`sim2.py` 已从硬编码 `/home/neuron/...` 改为项目相对路径；`train2 t2` 新增 `--scaler`；`tools/make_scaler.py` 可为 2 s 数据算新 scaler。但 `neuron/mods/x86_64/libnrnmech.so` 是平台相关产物，工作站必须重新 `nrnivmodl`；`data/`、`results/checkpoints/` 不进 Git。
-20. **GitHub push 暂未完成**：2026-10-27 15:40 的 `git push` 返回 `curl 52 / RPC failed`，本地 commit 已生成，远端正本仍停在 `537b074`。`git ls-remote` 可通，说明是 push 侧网络/服务问题；迁移后可重试，或改用 SSH/PAT。
 
 ## 6. 待确认问题
 
