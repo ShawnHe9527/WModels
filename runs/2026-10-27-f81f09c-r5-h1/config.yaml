@@ -1,0 +1,56 @@
+experiment: r5-h1-horizon-pilot
+date: 2026-10-27
+commit: f81f09cc7a513af0de2da70304eb99bf26eaaf31
+goal: >
+  Pilot R5-H1: keep the R2 recipe, increase the training window from 128 to
+  512 steps (3.2 -> 12.8 ms) and the closed-loop tail from 64 to 128 steps
+  (1.6 -> 3.2 ms). 2000 steps only; this is a direction test, not a final run.
+
+data:
+  train: tr_s1
+  val: va_s2
+  eval: te_s4
+  tier: t2
+  seed: 1
+  val_seed: 2
+
+model:
+  init: t1v4_dz16/best.pt
+  d_z: 16
+  hidden: 192
+  n_layers: 2
+
+training:
+  steps: 2000
+  batch: 24
+  length: 512
+  lr: 1.0e-3
+  cl_stage_a_steps: 500
+  cl_start: 4
+  cl_steps: 128
+  cl_weight: 1.0
+  cl_weight_start: 0.1
+  anchor_weight: 0.1
+  anchor_every: 4
+  anchor_cl: 0.1
+  event_weight: 10
+  event_tau: 0.2
+  regime_weights: "0.25,0.35,0.40"
+  hot_frac: 0.5
+  stage_b_lr: 2.0e-4
+  stage_b_grad_clip: 0.3
+  sigma_gate: 0.008
+  mem_mb: 5000
+
+note: >
+  Stage A is compressed to 500 steps (R2 used 2000) because this is a 2000-step
+  pilot; stage B ramps cl 4 -> 128 over the remaining 1500 steps. This is a
+  pilot schedule, not a direct 9000-step replication.
+
+success:
+  primary: >
+    H1 (last or best) improves te_s4 k=8000 vs R2 last (0.899), without
+    degrading te_s4 k=2000 (R2 0.594) and without DIVERGED.
+  stretch: te_s4 k=8000 <= L2 ridge 0.869.
+  if_improved: run R5-H2 (length 1024, cl 256, batch 16).
+  if_not: stop horizon route; move to event-centered sampling / longer data.
