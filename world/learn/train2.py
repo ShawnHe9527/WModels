@@ -250,10 +250,18 @@ def cmd_t2(a) -> int:
 
     s_tr = D2.Sampler2(tr, scaler, batch=a.batch, length=a.length, seed=a.seed,
                        p_trial=_regime_p(tr, a.regime_weights),
-                       hot_frac=a.hot_frac)
+                       hot_frac=a.hot_frac,
+                       event_center_frac=a.event_center_frac,
+                       event_center_thr=a.event_center_thr)
     s_va = D2.Sampler2(va, scaler, batch=a.batch, length=a.length,
                        seed=a.val_seed + 100)
     _log_sampling(s_tr, a, tr)
+    if getattr(a, "event_center_frac", 0.0) > 0:
+        log(f"  事件中心开窗：frac={a.event_center_frac:.2f} "
+            f"thr={a.event_center_thr:g}（cai log10）")
+    if getattr(a, "event_v_weight", 0.0) > 0:
+        log(f"  V 事件加权：weight={a.event_v_weight:.1f} "
+            f"tau={a.event_v_tau:.3f}")
 
     model = build_model(a, int(tr.th.shape[1]))
     ck = torch.load(os.path.join(RES, a.init), map_location="cpu",
@@ -276,6 +284,7 @@ def cmd_t2(a) -> int:
     best = float("inf")
     t0 = time.time()
     CAI = tr.meta["factor_names"].index("cai")      # 事件加权用
+    VIX = tr.meta["factor_names"].index("V")        # V 事件加权用
 
     for step in range(1, a.steps + 1):
         s0, u, ug, th, s_true, x = _torch(s_tr.batch_pair())
@@ -297,14 +306,22 @@ def cmd_t2(a) -> int:
         # ⇒ 目标函数几乎不惩罚「事件学不准」。这里按 cai 变化幅度给权重。
         #
         # 注意：只有训练 loss 加权；日志/评测仍用未加权误差，保持可比。
-        if a.event_weight > 0:
-            # s_hat[t] 对齐 s_true[t]（s_prev[t]=s_true[t-1]），故 dca 需 pad 到 L
-            d1 = (s_true[:, 1:, CAI, :]
-                  - s_true[:, :-1, CAI, :]).abs().amax(dim=2)   # (B,L-1) 跨 comp
-            dca = torch.cat([torch.zeros_like(d1[:, :1]), d1], dim=1)  # (B,L)
-            w = 1.0 + a.event_weight * torch.sigmoid(
-                dca / max(a.event_tau, 1e-6))
+        if a.event_weight > 0 or a.event_v_weight > 0:
+            # s_hat[t] 对齐 s_true[t]（s_prev[t]=s_true[t-1]），故差分需 pad 到 L
             se = (s_hat - s_true).pow(2).mean(dim=(2, 3))       # (B,L)
+            w = torch.ones_like(se)
+            if a.event_weight > 0:
+                d1 = (s_true[:, 1:, CAI, :]
+                      - s_true[:, :-1, CAI, :]).abs().amax(dim=2)   # (B,L-1)
+                dca = torch.cat([torch.zeros_like(d1[:, :1]), d1], dim=1)
+                w = w + a.event_weight * torch.sigmoid(
+                    dca / max(a.event_tau, 1e-6))
+            if a.event_v_weight > 0:
+                dv1 = (s_true[:, 1:, VIX, :]
+                       - s_true[:, :-1, VIX, :]).abs().amax(dim=2)
+                dv = torch.cat([torch.zeros_like(dv1[:, :1]), dv1], dim=1)
+                w = w + a.event_v_weight * torch.sigmoid(
+                    dv / max(a.event_v_tau, 1e-6))
             loss = (w * se).sum() / w.sum()
         else:
             loss = F.mse_loss(s_hat, s_true)
@@ -645,6 +662,14 @@ def main(argv=None) -> int:
                     help="① 事件加权强度：0=关闭。事件帧权重 = 1+该值")
     p2.add_argument("--event-tau", type=float, default=0.2,
                     help="① sigmoid 敏感度（归一化单位的 |Δcai| 尺度）")
+    p2.add_argument("--event-v-weight", type=float, default=0.0,
+                    help="①b V 事件加权强度：0=关闭。V 大幅变化帧额外加权")
+    p2.add_argument("--event-v-tau", type=float, default=0.02,
+                    help="①b sigmoid 敏感度（归一化单位的 |ΔV| 尺度）")
+    p2.add_argument("--event-center-frac", type=float, default=0.0,
+                    help="③c batch 内以 Ca episode 中心开窗的比例（0=关闭）")
+    p2.add_argument("--event-center-thr", type=float, default=-3.1,
+                    help="③c Ca episode 判据（cai 的 log10 值）")
     p2.add_argument("--regime-weights", type=str, default="",
                     help="② 每 trial 抽样概率 'linear,inter,plateau'，"
                          "如 '0.25,0.35,0.40'。空=均匀。仅训练用")

@@ -1,0 +1,58 @@
+experiment: r5-b-event-focused
+date: 2026-10-27
+commit: d2a3c49dbf164f782fb8d5ca672640a447ad5a9c
+goal: >
+  R5-B: keep the R2 horizon (length 128 = 3.2 ms, cl 64 = 1.6 ms) and
+  training budget (9000 steps), but change event focus:
+  (1) 50% of windows centered on a Ca episode;
+  (2) add V-event weighting on top of the existing cai weighting.
+  This isolates event sampling/weighting from the failed H1 horizon change.
+
+data:
+  train: tr_s1
+  val: va_s2
+  eval: te_s4
+  tier: t2
+  seed: 1
+  val_seed: 2
+
+model:
+  init: t1v4_dz16/best.pt
+  d_z: 16
+  hidden: 192
+  n_layers: 2
+
+training:
+  steps: 9000
+  batch: 24
+  length: 128
+  lr: 1.0e-3
+  cl_stage_a_steps: 2000
+  cl_start: 4
+  cl_steps: 64
+  cl_weight: 1.0
+  cl_weight_start: 0.1
+  anchor_weight: 0.1
+  anchor_every: 4
+  anchor_cl: 0.1
+  event_weight: 10
+  event_tau: 0.2
+  event_v_weight: 5
+  event_v_tau: 0.02
+  event_center_frac: 0.5
+  event_center_thr: -3.1
+  regime_weights: "0.25,0.35,0.40"
+  hot_frac: 0.5
+  stage_b_lr: 2.0e-4
+  stage_b_grad_clip: 0.3
+  sigma_gate: 0.008
+  mem_mb: 5000
+
+success:
+  primary: >
+    te_s4 k=2000 and k=8000 <= R2 (0.594/0.899), with no DIVERGED;
+    Ca peak F1 >= R2 (0.224) and Vmax ratio closer to 1.
+  if_improved: >
+    combine B with a longer horizon (H1/H2) as a separate variable.
+  if_not: >
+    stop event-focus route; next is longer data / full 9000 horizon control.

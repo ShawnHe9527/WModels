@@ -1,0 +1,4 @@
+d2a3c49dbf164f782fb8d5ca672640a447ad5a9c
+ M world/learn/data2.py
+ M world/learn/train2.py
+?? runs/2026-10-27-d2a3c49-r5b/

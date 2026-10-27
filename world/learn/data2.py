@@ -193,12 +193,16 @@ class Sampler2:
     def __init__(self, ds: Dataset2, scaler: dict, batch: int = 64,
                  length: int = 64, seed: int = 1,
                  p_trial: np.ndarray | None = None,
-                 hot_frac: float = 0.0):
+                 hot_frac: float = 0.0,
+                 event_center_frac: float = 0.0,
+                 event_center_thr: float = -3.1):
         """p_trial    : 每个 trial 的抽样概率（None = 均匀）。仅训练用。
         hot_frac   : batch 里「含事件窗口」的强制比例（0 = 不用）。
                      事件 = trial 的 n_tuft_event>0 或 plateau。
+        event_center_frac : batch 里以 Ca episode 中心开窗的比例（0 = 关闭）。
+        event_center_thr  : Ca episode 判据（cai 的 log10 值）。
 
-        ⚠️ 这两个参数**只能给训练 sampler 用**。验证/评测必须传默认值，
+        ⚠️ 这些参数**只能给训练 sampler 用**。验证/评测必须传默认值，
         否则分布变了，a(k) 不可比。
         """
         self.ds = ds
@@ -212,6 +216,26 @@ class Sampler2:
             assert p.shape == (ds.N,), f"p_trial 长度应为 {ds.N}"
             self.p_trial = p / p.sum()
         self.hot_frac = float(hot_frac)
+        self.event_center_frac = float(np.clip(event_center_frac, 0.0, 1.0))
+        self.event_centers: list[np.ndarray] = [
+            np.empty(0, dtype=np.int64) for _ in range(ds.N)]
+        # 预计算每个 trial 的 Ca episode 中心。只读 cai 通道，200×40000 约
+        # 0.35 GB 的临时读；初始化一次，训练循环里只查表。
+        if self.event_center_frac > 0:
+            ci = ds.meta["factor_names"].index("cai")
+            n_ev = 0
+            for i in range(ds.N):
+                c = np.asarray(ds.s[i, :, ci, :]).max(axis=1)
+                m = c > float(event_center_thr)
+                d = np.diff(np.concatenate(([0], m.astype(np.int8), [0])))
+                starts = np.where(d == 1)[0]
+                ends = np.where(d == -1)[0]
+                if len(starts):
+                    self.event_centers[i] = ((starts + ends) // 2).astype(np.int64)
+                    n_ev += 1
+            if n_ev == 0:
+                self.event_center_frac = 0.0
+
         # 「含事件 trial」判据：**必须用目标段的 Ca 指标**。
         # ⚠️ 不能用 n_tuft_event —— 那是*输入侧*（邻段突触）的事件，
         #    实测 199/200 个 trial 都有，分层会完全失效。
@@ -254,6 +278,18 @@ class Sampler2:
                             self._draw_trials(self.batch - nh)])
         self.rng.shuffle(p)                    # 防止 hot 总排在前面
         t0 = self.rng.integers(0, ds.T - L - 1, self.batch)
+        if self.event_center_frac > 0:
+            n_ev = min(int(round(self.event_center_frac * self.batch)),
+                       self.batch)
+            which = self.rng.choice(self.batch, n_ev, replace=False)
+            for j in which:
+                cents = self.event_centers[int(p[j])]
+                if len(cents) == 0:
+                    continue
+                c = int(self.rng.choice(cents))
+                jit = int(self.rng.integers(-max(L // 4, 1),
+                                            max(L // 4, 1) + 1))
+                t0[j] = int(np.clip(c - L // 2 + jit, 0, ds.T - L - 1))
         idx = t0[:, None] + np.arange(L)[None, :]          # (B,L)
 
         s0 = np.asarray(ds.s[p, t0])                        # (B,nf,Ps)
