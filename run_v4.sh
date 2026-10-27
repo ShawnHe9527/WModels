@@ -14,7 +14,7 @@
 set -euo pipefail
 cd "$(dirname "$0")"
 
-PY=/home/neuron/miniconda3/envs/worm_sim/bin/python
+PY=${PY:-/home/neuron/miniconda3/envs/worm_sim/bin/python}
 export PYTHONPATH=$PWD
 export OMP_NUM_THREADS=4
 export MKL_NUM_THREADS=4

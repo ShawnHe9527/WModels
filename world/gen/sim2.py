@@ -64,9 +64,14 @@ import os
 
 import numpy as np
 
-MODDIR = "/home/neuron/L5PC/WModel2/neuron/mods/x86_64/libnrnmech.so"
-HOCODIR = "/home/neuron/L5PC/WModel2/neuron/hoc"
-MORPH = "/home/neuron/L5PC/WModel2/neuron/morphologies/cell1.asc"
+# Project-relative paths: the checkout can live anywhere after migration.
+# `neuron/mods/x86_64/libnrnmech.so` must be rebuilt on the target machine
+# (`nrnivmodl`) because it is platform-specific.
+_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(
+    os.path.abspath(__file__))))
+MODDIR = os.path.join(_ROOT, "neuron", "mods", "x86_64", "libnrnmech.so")
+HOCODIR = os.path.join(_ROOT, "neuron", "hoc")
+MORPH = os.path.join(_ROOT, "neuron", "morphologies", "cell1.asc")
 
 FACTOR_NAMES = [
     "Ih.m", "Ca_LVAst.m", "Ca_LVAst.h", "Ca_HVA.h",

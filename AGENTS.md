@@ -31,7 +31,9 @@
 
 - 线程数必须在 import numpy/torch **之前**设置；脚本里已通过
   `world.core.safety.apply_thread_caps()` 处理。
-- 训练进程实测 RSS 约 **3.4–4.0 GB**；同一时刻只允许一个训练/评测进程。
+- 训练进程实测 RSS 约 **3.4–4.0 GB**（R2；L512/事件加权可到 5–6 GB）；同一时刻只允许一个训练/评测进程。
+- 迁移到工作站：`sim2.py` 已用项目相对路径；`neuron/mods/x86_64/libnrnmech.so` 必须在目标机
+  重新 `nrnivmodl`；2 s 数据用 `tools/make_scaler.py` 生成新 scaler，训练传 `--scaler`。
 - 新终端默认是 `base`，没有 torch；不要依赖 `conda activate`，一律用上面的绝对路径。
 
 ## 3. 常用命令
@@ -131,8 +133,8 @@ WModel2/
 ├── tools/                    # 当前工具与两个保留探针
 ├── docs/                     # DESIGN_v4、MODEL_FACTS、文献/资产参考
 │   └── archive/              # v1/v2/v3 设计与旧调查，仅历史追溯
-├── data/                     # v4 数据集，约 17 GB，可重生成但很贵
-│   ├── tr_s1/ va_s2/ te_s3/  # s.dat u.dat th.npy meta.json
+├── data/                     # v4 数据集，约 22.5 GB，可重生成但很贵
+│   ├── tr_s1/ va_s2/ te_s3/ te_s4/  # s.dat u.dat th.npy meta.json
 ├── results/
 │   ├── checkpoints/          # 当前 v4 权重（t1v4 + R0–R4）
 │   ├── rounds/               # R0–R4 归档 + 总索引 + 对比图
@@ -140,7 +142,7 @@ WModel2/
 │   ├── data/                 # scaler_v4.json
 │   └── archive/legacy_v3/    # 旧 v3 结果，仅历史追溯
 ├── archive/legacy_v3/        # 旧 v3 代码/工具，仅历史追溯
-└── runs/                     # 新规范：每个实验一个 <YYYY-MM-DD>-<commit7>/（当前尚未创建）
+└── runs/                     # 新规范：每个实验一个 <YYYY-MM-DD>-<commit7>/（已建多个）
 ```
 
 ## 5. 实验规范（从本文件生效起执行）
@@ -177,7 +179,7 @@ runs/<YYYY-MM-DD>-<commit7>/
 
 - `neuron/**`：官方模型资产，**只读**；不要改 `.hoc`、`.mod`、`cell1.asc`、
   参考脚本，也不要删 `neuron/mods/x86_64/libnrnmech.so`。
-- `data/{tr_s1,va_s2,te_s3}/`：当前 v4 数据集，约 17 GB；不要覆盖、截断、删除。
+- `data/{tr_s1,va_s2,te_s3,te_s4}/`：当前 v4 数据集，约 22.5 GB；不要覆盖、截断、删除。
   重生成一组约 17 分钟且会改变样本，必须先确认。
 - `results/checkpoints/{t1v4_dz16,t2v4_anchor,t2v5_ancC,t2v5_noancC,t2v5_events,t2v5_events_w5a2,t2v5_events_w8}/`：
   当前 T1 与 R0–R4 权重；不要原地覆盖。

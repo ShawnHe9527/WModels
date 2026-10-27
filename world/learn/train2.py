@@ -245,7 +245,8 @@ def cmd_t2(a) -> int:
 
     tr = D2.Dataset2(DATA, a.data, tier=a.tier)
     va = D2.Dataset2(DATA, a.val, tier=a.tier)
-    with open(SCALER, encoding="utf-8") as f:
+    scaler_path = getattr(a, "scaler", "") or SCALER
+    with open(scaler_path, encoding="utf-8") as f:
         scaler = json.load(f)
 
     s_tr = D2.Sampler2(tr, scaler, batch=a.batch, length=a.length, seed=a.seed,
@@ -670,6 +671,8 @@ def main(argv=None) -> int:
                     help="③c batch 内以 Ca episode 中心开窗的比例（0=关闭）")
     p2.add_argument("--event-center-thr", type=float, default=-3.1,
                     help="③c Ca episode 判据（cai 的 log10 值）")
+    p2.add_argument("--scaler", type=str, default="",
+                    help="归一化 scaler JSON 路径；空=results/data/scaler_v4.json")
     p2.add_argument("--regime-weights", type=str, default="",
                     help="② 每 trial 抽样概率 'linear,inter,plateau'，"
                          "如 '0.25,0.35,0.40'。空=均匀。仅训练用")

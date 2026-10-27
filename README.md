@@ -8,15 +8,16 @@ Enc(s_t, θ) -> z_t        Pred(z_t, u_t, θ) -> z_{t+1}        Dec(z_{t+1}) -> 
 
 - `s`：7 个慢门控 + `cai` + `V`，逐 compartment ⇒ 9×11 = **99 维**
 - `u`：目标段 11 + 邻段 17 个 compartment 的 AMPA / NMDA(去门控) / GABA 电导，加 1 维 bAP 指示 ⇒ **85 维**
-- 数据：`tr_s1` / `va_s2` / `te_s3` 各 200 条，`dt=0.025 ms`，每条 40000 帧；由 `world.gen.datagen2` 现场调 NEURON 生成，共约 17 GB，**不是下载的数据**
+- 数据：`tr_s1` / `va_s2` / `te_s3` / `te_s4` 各 200 条，`dt=0.025 ms`，每条 40000 帧；由 `world.gen.datagen2` 现场调 NEURON 生成，共约 22.5 GB，**不是下载的数据**
 
 ## 当前状态
 
 - 实验方案：`docs/DESIGN_v4.md`（已定档，2026-10-22 执行）
-- 数据：三组 v4 数据已生成，位于 `data/`
-- 训练：R0–R4 六轮已完成；**当前最优为 R2**（`t2v5_events`，`model/L0@200=0.562`，`model/L0@8000=0.911`，无发散）
-- R4（`t2v5_events_w8`）在 k=8000 出现数值发散，不采纳；详见 `results/rounds/R4_event_w8/CONCLUSIONS.md`
-- 结果入口：`results/rounds/README.md`（跨轮索引）；`results/rounds/R*/CONCLUSIONS.md`（人工结论）
+- 当前最优：**R2**（`t2v5_events/last.pt`）。`te_s4` 盲测：k=200 **0.562**、k=2000 **0.594**、k=8000 **0.899**（CI [0.783,1.031]）
+- 已失败的方向：R5 零训练标定、R5-H1（L512 pilot）、R5-B（事件中心 + V 加权）；详见 `PROJECT_STATE.md`
+- 下一计划：**2 s 数据 + C+A（L=512，9000 步）**，见 [docs/PLAN_R6_C_A_AND_MIGRATION.md](docs/PLAN_R6_C_A_AND_MIGRATION.md)
+- 结果入口：`results/rounds/README.md`（R0–R4）；`runs/`（R5 之后的实验）
+- 迁移：`sim2.py` 已改为项目相对路径；工作站需重编译 `neuron/mods`，详见计划文档
 
 ## 目录地图
 
@@ -26,11 +27,11 @@ Enc(s_t, θ) -> z_t        Pred(z_t, u_t, θ) -> z_{t+1}        Dec(z_{t+1}) -> 
 | `world/core/` | 资源护栏、进度条、v4 常量 |
 | `world/gen/` | `datagen2.py`（生成）、`sim2.py`（NEURON 仿真）、`protocol.py` + `protocol2.py`（驱动协议）、`secinfo.py`（θ_s） |
 | `world/learn/` | `data2.py`（memmap / token）、`model.py`（Enc/Pred/Dec）、`train2.py`（T1/T2/eval） |
-| `tools/` | 当前入口工具：`round_report.py`、`rounds_index.py`、`fig_rounds_summary.py`、`ca_event_metrics.py`、`latent_ci.py`、`diag_latent.py`、`plot_v4.py`、`verify_env.py`、`v0_check.py`、两个探针 |
+| `tools/` | 当前工具：`eval_gate.py`、`calibrate_r2.py`、`plot_r5b.py`、`make_scaler.py`、`round_report.py`、`rounds_index.py`、`fig_rounds_summary.py`、`ca_event_metrics.py`、`latent_ci.py`、`diag_latent.py`、`plot_v4.py`、`verify_env.py`、`v0_check.py`、两个探针 |
 | `docs/` | 当前设计/事实/文献；历史文档在 `docs/archive/` |
 | `results/` | 当前 ckpt / rounds / logs / reports / figs；旧 v3 产物在 `results/archive/legacy_v3/` |
 | `archive/legacy_v3/` | 已归档的 v3 代码与旧工具，**不再 import，不要作为当前入口** |
-| `data/` | 大数据集，可重生成；当前 17 GB |
+| `data/` | 大数据集，可重生成；当前约 22.5 GB |
 
 ## 怎么跑
 
