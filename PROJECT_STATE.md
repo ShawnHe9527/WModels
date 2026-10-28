@@ -271,6 +271,7 @@ R5 零训练标定已经在 `runs/2026-10-26-be60d2d-r5-calib/` 执行：
 A-only 和 3 s 数据暂缓。完整命令、资源预算、判据、工作站迁移清单：
 
 [`docs/PLAN_R6_C_A_AND_MIGRATION.md`](docs/PLAN_R6_C_A_AND_MIGRATION.md)
+和 [`docs/HANDOFF_WORKSTATION_AGENT.md`](docs/HANDOFF_WORKSTATION_AGENT.md)
 
 关键前置：
 
