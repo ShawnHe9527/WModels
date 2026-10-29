@@ -219,6 +219,8 @@ class Sim2:
             e.tau_r_AMPA, e.tau_d_AMPA = 0.3, 3.0
             e.tau_r_NMDA, e.tau_d_NMDA = 2.0, 70.0
             e.gmax, e.e = self.gmax_e, 0
+            # MODEL_FACTS §7：显式关闭短时可塑性（mod 默认是 100/10，会误开）
+            e.Use, e.u0, e.Dep, e.Fac = 1.0, 0.0, 0.0, 0.0
             nc = h.NetCon(None, e)
             nc.delay, nc.weight[0] = 0.0, 1
             KEEP.extend([e, nc])
@@ -228,6 +230,7 @@ class Sim2:
             ii = h.ProbUDFsyn2(sg)
             ii.tau_r, ii.tau_d = 0.2, 8.0
             ii.gmax, ii.e = self.gmax_i, -80
+            ii.Use, ii.u0, ii.Dep, ii.Fac = 1.0, 0.0, 0.0, 0.0
             nc = h.NetCon(None, ii)
             nc.delay, nc.weight[0] = 0.0, 1
             KEEP.extend([ii, nc])

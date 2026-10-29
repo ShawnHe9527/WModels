@@ -278,6 +278,8 @@ class WorldModel(nn.Module):
                                  dtype=z.dtype, device=z.device)
             elif ug.dim() == z.dim() - 1:
                 ug = ug.unsqueeze(-1)
+            elif ug.dim() == z.dim() + 1:
+                ug = ug.squeeze(-2)
             z = torch.cat([z, ug], dim=-1)
         k = torch.sigmoid(self.gate(z))
         return 1.0 - self.slow_mask * (1.0 - k)
