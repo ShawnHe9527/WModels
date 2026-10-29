@@ -1,0 +1,9 @@
+git_head: 329f49a66788f8a837fe414461b8b3f0f2d971be
+--- git status --porcelain ---
+?? .paper_tmp.txt
+?? runs/2026-10-29-329f49a-r6-c-1s-drift/
+--- created 2026-10-29T15:47:19+08:00 ---
+a6000middle
+/dev/nvme0n1p5  568G  525G   15G  98% /home
+               total        used        free      shared  buff/cache   available
+Mem:           502Gi        10Gi       105Gi        71Gi       386Gi       416Gi
