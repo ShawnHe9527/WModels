@@ -1,0 +1,11 @@
+git_head: afd12069b0870ceccc81ddee4830985cfb4755a4
+--- git status --porcelain ---
+?? runs/2026-10-29-afd1206-diag-1s-check/
+?? runs/2026-10-29-afd1206-r6-1s-data/
+?? runs/2026-10-29-afd1206-r6-c-1s-base/
+?? runs/2026-10-29-afd1206-r6-c-1s-fw/
+--- created 2026-10-29T14:38:16+08:00 ---
+a6000middle
+/dev/nvme0n1p5  568G  525G   15G  98% /home
+               total        used        free      shared  buff/cache   available
+Mem:           502Gi        10Gi        98Gi        71Gi       393Gi       416Gi

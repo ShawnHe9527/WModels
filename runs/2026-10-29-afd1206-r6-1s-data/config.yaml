@@ -1,0 +1,7 @@
+experiment: r6_1s_data
+purpose: "regenerate 1 s data on workstation (tr_s1 seed1, va_s2 seed2, te_s3 seed3), T=40000"
+host: a6000middle
+date: 2026-10-29
+git_head: afd1206
+cmd: "datagen2 --n-trial 200 --t-settle 100 --t-test 1000 --every-secs 20"
+outputs: datasets/1s/{tr_s1,va_s2,te_s3}

@@ -1,0 +1,8 @@
+[done] va_s2 rc=1 2026-10-29T13:20:49+08:00
+[done] te_s3 rc=0 2026-10-29T13:20:49+08:00
+[done] tr_s1 rc=0 2026-10-29T13:20:49+08:00
+=== finished 2026-10-29T13:20:49+08:00 ===
+5.5G	/home/Hesj/QH1_dataHe/WM/datasets/1s/te_s3
+5.5G	/home/Hesj/QH1_dataHe/WM/datasets/1s/tr_s1
+5.5G	/home/Hesj/QH1_dataHe/WM/datasets/1s/va_s2
+//192.168.1.65/QH1_Labdata/dataHe  104T   60T   45T  57% /home/Hesj/QH1_dataHe
