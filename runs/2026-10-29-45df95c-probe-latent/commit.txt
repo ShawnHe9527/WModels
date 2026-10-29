@@ -1,0 +1,9 @@
+git_head: 45df95caa26ea204c6abad065564a5d2e3f9ae70
+--- git status --porcelain ---
+?? runs/2026-10-29-45df95c-probe-latent/
+?? tools/probe_latent.py
+--- created 2026-10-29T09:26:54+08:00 ---
+a6000middle
+/dev/nvme0n1p5  568G  524G   16G  98% /home
+               total        used        free      shared  buff/cache   available
+Mem:           502Gi        75Gi        57Gi        72Gi       370Gi       350Gi
