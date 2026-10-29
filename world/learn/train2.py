@@ -290,6 +290,16 @@ def cmd_t2(a) -> int:
     t0 = time.time()
     CAI = tr.meta["factor_names"].index("cai")      # 事件加权用
     VIX = tr.meta["factor_names"].index("V")        # V 事件加权用
+    # 逐因子损失权重（诊断 A/E0：慢门控漂移是长程主因）
+    FW = None
+    if getattr(a, "factor_weights", ""):
+        vals = [float(x) for x in a.factor_weights.split(",")]
+        if len(vals) != len(tr.meta["factor_names"]):
+            raise SystemExit(f"--factor-weights 需要 {len(tr.meta['factor_names'])} 个数，"
+                             f"收到 {len(vals)}")
+        FW = torch.tensor(vals, dtype=torch.float32).view(1, 1, -1, 1)
+        log("逐因子损失权重：" + " ".join(
+            f"{nm}={v:g}" for nm, v in zip(tr.meta["factor_names"], vals)))
 
     for step in range(1, a.steps + 1):
         s0, u, ug, th, s_true, x = _torch(s_tr.batch_pair())
@@ -313,7 +323,11 @@ def cmd_t2(a) -> int:
         # 注意：只有训练 loss 加权；日志/评测仍用未加权误差，保持可比。
         if a.event_weight > 0 or a.event_v_weight > 0:
             # s_hat[t] 对齐 s_true[t]（s_prev[t]=s_true[t-1]），故差分需 pad 到 L
-            se = (s_hat - s_true).pow(2).mean(dim=(2, 3))       # (B,L)
+            se_f = (s_hat - s_true).pow(2)                      # (B,L,F,P)
+            if FW is not None:
+                se = (se_f * FW).sum(dim=(2, 3)) / FW.sum()     # 加权平均，保持尺度
+            else:
+                se = se_f.mean(dim=(2, 3))                      # (B,L)
             w = torch.ones_like(se)
             if a.event_weight > 0:
                 d1 = (s_true[:, 1:, CAI, :]
@@ -329,7 +343,12 @@ def cmd_t2(a) -> int:
                     dv / max(a.event_v_tau, 1e-6))
             loss = (w * se).sum() / w.sum()
         else:
-            loss = F.mse_loss(s_hat, s_true)
+            se_f = (s_hat - s_true).pow(2)
+            if FW is not None:
+                loss = (se_f * FW).sum() / (FW.sum() * s_hat.shape[0]
+                                            * s_hat.shape[1])
+            else:
+                loss = se_f.mean()
 
         # ---- latent 自洽正则（latent consistency）----
         #
@@ -693,6 +712,8 @@ def main(argv=None) -> int:
                     help="③c Ca episode 判据（cai 的 log10 值）")
     p2.add_argument("--scaler", type=str, default="",
                     help="归一化 scaler JSON 路径；空=results/data/scaler_v4.json")
+    p2.add_argument("--factor-weights", type=str, default="",
+                    help="9 个因子的损失权重（逗号分隔，空=全 1），顺序同 factor_names")
     p2.add_argument("--save-every", type=int, default=500,
                     help="每 N 步覆盖存一次 last.pt（0=只在结束时存）；"
                          "防 5 h 训练崩溃时丢掉全部进度")
