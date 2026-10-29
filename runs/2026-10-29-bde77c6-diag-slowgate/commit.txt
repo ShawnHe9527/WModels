@@ -1,0 +1,9 @@
+git_head: bde77c652e92c649df9dbfc4d7987c2394018d5d
+--- git status --porcelain ---
+?? runs/2026-10-29-bde77c6-diag-slowgate/
+?? runs/2026-10-29-bde77c6-r6-c-1s-slowgate/
+--- created 2026-10-29T21:33:31+08:00 ---
+a6000middle
+/dev/nvme0n1p5  568G  525G   15G  98% /home
+               total        used        free      shared  buff/cache   available
+Mem:           502Gi        28Gi        75Gi        72Gi       398Gi       397Gi
