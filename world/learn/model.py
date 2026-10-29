@@ -236,19 +236,51 @@ class WorldModel(nn.Module):
     def __init__(self, n_factors: int = 9, u_dim: int = 3, th_dim: int = 27,
                  d_z: int = 8, hidden: int = 128, n_layers: int = 2,
                  pred_attn: bool = False, n_heads: int = 4,
-                 u_in_x: bool = True, n_glob: int = 0):
+                 u_in_x: bool = True, n_glob: int = 0,
+                 slow_gate: bool = False,
+                 slow_factors: tuple = (0, 2, 3)):
         super().__init__()
         self.d_z = d_z
         self.n_factors = n_factors
         self.pred_attn = bool(pred_attn)
         self.u_in_x = bool(u_in_x)
         self.n_glob = int(n_glob)
+        self.slow_gate = bool(slow_gate)
         self.enc = Encoder(n_factors, u_dim, th_dim, d_z, hidden, n_layers,
                            u_in_x=u_in_x, n_glob=n_glob)
         self.pred = Predictor(d_z, u_dim, th_dim, hidden, n_layers,
                               attn=pred_attn, n_heads=n_heads,
                               u_in_x=u_in_x, n_glob=n_glob)
         self.dec = Decoder(d_z, n_factors, th_dim, hidden, n_layers)
+        if self.slow_gate:
+            # P3a：慢因子的输入相关衰减门 κ（论文 Eq.1 的 diag(A_t) 最简形式）。
+            # 初始化成常数 0.9（慢因子），其余因子恒为 1，等价于“起始 90% 保持”。
+            n_in = d_z + self.n_glob
+            self.gate = nn.Linear(n_in, n_factors)
+            nn.init.zeros_(self.gate.weight)
+            with torch.no_grad():
+                self.gate.bias.fill_(2.1972246)          # logit(0.9)
+            mask = torch.zeros(n_factors)
+            for f in slow_factors:
+                if 0 <= f < n_factors:
+                    mask[f] = 1.0
+            self.register_buffer("slow_mask", mask)
+
+    # ------------------------------------------------------------------
+    def slow_kappa(self, z, u_glob=None):
+        """(..., d_z) -> (..., n_factors)，非慢因子恒为 1。"""
+        if not self.slow_gate:
+            return None
+        ug = u_glob
+        if self.n_glob > 0:
+            if ug is None:
+                ug = torch.zeros(z.shape[:-1] + (self.n_glob,),
+                                 dtype=z.dtype, device=z.device)
+            elif ug.dim() == z.dim() - 1:
+                ug = ug.unsqueeze(-1)
+            z = torch.cat([z, ug], dim=-1)
+        k = torch.sigmoid(self.gate(z))
+        return 1.0 - self.slow_mask * (1.0 - k)
 
     # ------------------------------------------------------------------
     def encode(self, s, u, th, x, u_glob=None):
@@ -264,10 +296,11 @@ class WorldModel(nn.Module):
         return self.decode(self.encode(s, u, th, x, u_glob), th, x)
 
     # ------------------------------------------------------------------
-    def step_residual(self, s_prev, z_prev, z_next, th, x):
+    def step_residual(self, s_prev, z_prev, z_next, th, x, u_glob=None):
         """残差步：ŝ = s_prev + [Dec(z_next) − Dec(z_prev)]。
 
         z_prev / z_next 可以是 (B,d_z) 或 (B,T,d_z)；统一升成 3D。
+        若启用 slow_gate，慢因子的增量再乘 κ(z_prev)（P3a）。
         """
         if z_next.dim() == 2:
             z_next = z_next.unsqueeze(1)
@@ -275,7 +308,11 @@ class WorldModel(nn.Module):
             z_prev = z_prev.unsqueeze(1)
         d_next = self.decode(z_next, th, x)
         d_prev = self.decode(z_prev, th, x)
-        return s_prev + (d_next[:, 0] - d_prev[:, 0])
+        delta = d_next[:, 0] - d_prev[:, 0]
+        k = self.slow_kappa(z_prev, u_glob)
+        if k is not None:
+            delta = delta * k[:, 0].unsqueeze(-1)
+        return s_prev + delta
 
     @torch.no_grad()
     def rollout(self, s0, u_seq, th, x, use_residual: bool = True,
@@ -304,7 +341,7 @@ class WorldModel(nn.Module):
                                   None if gt is None else gt.unsqueeze(1)
                                   ).squeeze(1)
             if use_residual:
-                s_hat = self.step_residual(s_hat, z, z_next, th, x)
+                s_hat = self.step_residual(s_hat, z, z_next, th, x, gt)
             else:
                 s_hat = self.decode(z_next.unsqueeze(1), th, x)[:, 0]
             z = z_next
@@ -321,7 +358,8 @@ class WorldModel(nn.Module):
 def build(d_z: int = 8, hidden: int = 128, n_layers: int = 2,
           n_factors: int = 9, u_dim: int = 3, th_dim: int = 27,
           pred_attn: bool = False, n_heads: int = 4,
-          u_in_x: bool = True, n_glob: int = 0) -> WorldModel:
+          u_in_x: bool = True, n_glob: int = 0,
+          slow_gate: bool = False) -> WorldModel:
     return WorldModel(n_factors, u_dim, th_dim, d_z, hidden, n_layers,
                       pred_attn=pred_attn, n_heads=n_heads,
-                      u_in_x=u_in_x, n_glob=n_glob)
+                      u_in_x=u_in_x, n_glob=n_glob, slow_gate=slow_gate)

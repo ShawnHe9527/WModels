@@ -144,7 +144,8 @@ def build_model(a, th_dim: int, cfg: dict | None = None):
     m = M.build(d_z=d_z, hidden=hidden, n_layers=n_layers,
                 n_factors=D2.N_FACTORS, u_dim=D2.U_FEAT, th_dim=th_dim,
                 pred_attn=pred_attn, n_heads=n_heads,
-                u_in_x=False, n_glob=D2.N_GLOB)
+                u_in_x=False, n_glob=D2.N_GLOB,
+                slow_gate=bool(getattr(a, "slow_gate", False)))
     n = m.n_params()
     log(f"模型 enc={n['enc']:,} pred={n['pred']:,} dec={n['dec']:,} "
         f"total={n['total']:,}  d_z={d_z} tier={tier} attn={pred_attn}")
@@ -321,7 +322,11 @@ def cmd_t2(a) -> int:
         with torch.no_grad():
             d_prev = model.decode(z_prev, th, x)
         s_prev = torch.cat([s0.unsqueeze(1), s_true[:, :-1]], dim=1)
-        s_hat = s_prev + (d_next - d_prev)
+        _delta = d_next - d_prev
+        _k = model.slow_kappa(z_prev, ug)
+        if _k is not None:
+            _delta = _delta * _k.unsqueeze(-1)
+        s_hat = s_prev + _delta
         # ---- ① 事件加权损失 ----
         #
         # 实测 98.6% 的帧是静息的，事件帧误差虽大 2.6 倍，但对 MSE 只贡献 3.7%
@@ -425,7 +430,7 @@ def cmd_t2(a) -> int:
                 zc_next = model.predict(zc.unsqueeze(1), u[:, j].unsqueeze(1),
                                         th, x, ug[:, j].unsqueeze(1)
                                         ).squeeze(1)
-                sc_next = model.step_residual(sc, zc, zc_next, th, x)
+                sc_next = model.step_residual(sc, zc, zc_next, th, x, ug[:, j])
                 cl_loss = cl_loss + F.mse_loss(sc_next, s_true[:, j])
                 # ③b：闭环段自洽。乘 m 抵消外层 `/m`，使该项不吃 m 的稀释。
                 if (a.anchor_cl > 0
@@ -756,6 +761,8 @@ def main(argv=None) -> int:
     p2.add_argument("--stage-b-lr", type=float, default=0.0)
     p2.add_argument("--stage-b-grad-clip", type=float, default=0.0)
     p2.add_argument("--pred-attn", action="store_true")
+    p2.add_argument("--slow-gate", action="store_true",
+                    help="P3a：慢因子输入相关衰减门 κ（init 0.9），默认关闭")
     p2.add_argument("--n-heads", type=int, default=4)
     p2.set_defaults(func=cmd_t2)
 
