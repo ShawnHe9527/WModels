@@ -11,38 +11,36 @@
 学习 `Enc(s_t,θ)→z_t`、`Pred(z_t,u_t,θ)→z_{t+1}`、`Dec(z_{t+1})→ŝ_{t+1}` 的 latent 世界模型，
 并预测 9 个状态因子（7 个慢门控 + `cai` + `V`）的下一步演化。
 
-## 2. 环境
+## 2. 环境（工作站 `a6000middle`，2026-10-28 迁移后）
 
-- conda 环境名：`worm_sim`
-- Python 绝对路径：`/home/neuron/miniconda3/envs/worm_sim/bin/python`（3.10.20）
-- 当前版本：`numpy==2.0.2`、`torch==2.4.1+cpu`、`NEURON==8.2.0`、`scipy==1.15.3`、`matplotlib==3.10.8`
-- 当前仓库**没有** `requirements.txt` / `pyproject.toml`；不要凭记忆升级版本，先对照本节的实测版本。
-
-复现当前环境的命令（不要在其他已有环境上直接升级；装包前先确认）：
-
-```bash
-/home/neuron/miniconda3/bin/conda create -n worm_sim python=3.10 -y
-/home/neuron/miniconda3/envs/worm_sim/bin/python -m pip install --upgrade pip
-/home/neuron/miniconda3/envs/worm_sim/bin/python -m pip install \
-  --index-url https://download.pytorch.org/whl/cpu torch==2.4.1+cpu
-/home/neuron/miniconda3/envs/worm_sim/bin/python -m pip install \
-  numpy==2.0.2 NEURON==8.2.0 scipy==1.15.3 matplotlib==3.10.8
-```
-
+- 机器：`a6000middle`（192.168.1.94），**32 逻辑核 / 502 GB 内存**；**不使用 GPU**（被他人占用）
+- 项目根：`/home/Hesj/WModel`（git `main`）；旧 WSL 路径 `/home/neuron/L5PC/WModel2` 已停用，仅历史参考
+- 环境：`/home/Hesj/envs/worm_sim`（**venv**，Python 3.10.20，解释器来自 `miniconda3/envs/neuron_env`）
+  - `torch==2.4.1+cpu`（`cuda.is_available() == False`）、`numpy==2.0.2`、`NEURON==8.2.0`、
+    `scipy==1.15.3`、`matplotlib==3.10.8`
+  - ⚠️ **不要删 `neuron_env`**：`worm_sim` 是 venv，链接到它的 Python 与标准库
+- ⚠️ **所有 NEURON/训练/评测命令必须 `env -u DISPLAY`**：工作站 `DISPLAY` 指向不可达的
+  `192.168.31.175:0.0`，`import neuron` / `nrnivmodl` 会卡在 X 连接（见 `PROJECT_STATE.md` 5.2-20）
+- 装包来源：`pypi.org` 慢，用阿里云 `https://mirrors.aliyun.com/pypi/simple/`；torch 用
+  `https://download.pytorch.org/whl/cpu`；`repo.anaconda.com` 不可达 ⇒ **不要用 `conda create`**
 - 线程数必须在 import numpy/torch **之前**设置；脚本里已通过
-  `world.core.safety.apply_thread_caps()` 处理。
-- 训练进程实测 RSS 约 **3.4–4.0 GB**（R2；L512/事件加权可到 5–6 GB）；同一时刻只允许一个训练/评测进程。
-- 迁移到工作站：`sim2.py` 已用项目相对路径；`neuron/mods/x86_64/libnrnmech.so` 必须在目标机
-  重新 `nrnivmodl`；2 s 数据用 `tools/make_scaler.py` 生成新 scaler，训练传 `--scaler`。
-- 新终端默认是 `base`，没有 torch；不要依赖 `conda activate`，一律用上面的绝对路径。
+  `world.core.safety.apply_thread_caps()` 处理（`train2` 固定 4）
+- 内存：R2 约 3.4–4.0 GB；**L=512 + cl=128 实测峰值 12.4 GB**（不是 5–6 GB）；
+  同一时刻只允许一个训练/评测进程
+- 存储：`data/` → `/home/Hesj/QH1_dataHe/WM`（CIFS `//192.168.1.65/QH1_Labdata/dataHe`，45 TB 空闲），
+  `results/checkpoints/` → 同 NAS；数据集在 `datasets/<长度>/<name>`（如 `datasets/2s/tr_s1_2s`）
+- 本机 `/home` 是共享盘、常年 90–99%：数据/权重一律走 NAS，本机只放代码、环境、日志
+- `neuron/mods/x86_64/libnrnmech.so` 已在本机 `nrnivmodl` 生成（平台相关、不进 Git；换机必须重编译）
+- 训练/评测统一用 `tools/guard_run.sh`（启动检查 + 60 s 监控 + 自动停机），
+  实验目录用 `tools/new_run.sh` 建；阈值：**RSS > 32 GB / 可用内存 < 16 GB / 磁盘 < 3 GB** 停
 
 ## 3. 常用命令
 
 先设置：
 
 ```bash
-cd /home/neuron/L5PC/WModel2
-PY=/home/neuron/miniconda3/envs/worm_sim/bin/python
+cd /home/Hesj/WModel
+PY=/home/Hesj/envs/worm_sim/bin/python
 export PYTHONPATH=$PWD
 export OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 NUMEXPR_NUM_THREADS=4
 ```
@@ -69,12 +67,14 @@ $PY -u -m world.learn.train2 t2 \
   --event-weight 10 --event-tau 0.2 \
   --regime-weights "0.25,0.35,0.40" --hot-frac 0.5 \
   --stage-b-lr 2e-4 --stage-b-grad-clip 0.3 \
-  --sigma-gate 0.008 --mem-mb 3300
+  --sigma-gate 0.008 --rss-cap-mb 32000 --mem-floor-mb 16000 \
+  --save-every 500 --mem-mb 16000
 ```
 
-> 当前代码还不能直接把 ckpt 写到 `runs/`；按第 5 节规范，训练后用 `cp` 把 ckpt
-> 复制进本次 `runs/<date>-<commit7>/ckpt/`，并在 `metrics.json` 里记录 ckpt 相对路径。
-> 不要为了省事只把结果留在 `results/checkpoints/`。
+> 训练用 `tools/guard_run.sh RUN_DIR STDOUT -- <cmd>` 包装（启动检查 + 60 s 监控 + 自动停机），
+> 实验目录用 `tools/new_run.sh <name>` 建。ckpt 仍写 `results/checkpoints/<run>/`（NAS），
+> 需要归档再 `cp` 进 `runs/<date>-<commit7>/ckpt/`；`stdout.log`/`monitor.log` 由 guard 写 run 目录
+> （已在 `.gitignore` 中，不进 Git）。
 
 ### 3.2 跑测试/自检
 
@@ -93,8 +93,8 @@ $PY -m tools.v0_check --n 2 --seed 99 --mem-mb 2000
 
 如果只改文档/README，也必须至少跑第 2 项，确认没有误改 import。
 
-> ⚠️ `tools/verify_env.py` 目前仍按旧根目录布局找 `mods/`、`morphologies/`、`probes/`，
-> 在 v4 下会 10/13 失败；**不要把它当成当前门禁**。环境可用性以 `tools/v0_check` 为准。
+> ⚠️ `tools/verify_env.py` 按旧 v3 布局（`mods/`、`morphologies/`、`probes/` 在仓库根）编写，
+> 在 v4 下会直接打印提示并返回 2；**不要把它当成当前门禁**。环境可用性以 `tools/v0_check` 为准。
 
 ### 3.3 出图/汇总
 
@@ -133,8 +133,8 @@ WModel2/
 ├── tools/                    # 当前工具与两个保留探针
 ├── docs/                     # DESIGN_v4、MODEL_FACTS、文献/资产参考
 │   └── archive/              # v1/v2/v3 设计与旧调查，仅历史追溯
-├── data/                     # v4 数据集，约 22.5 GB，可重生成但很贵
-│   ├── tr_s1/ va_s2/ te_s3/ te_s4/  # s.dat u.dat th.npy meta.json
+├── data/                     # 软链接 → NAS /home/Hesj/QH1_dataHe/WM
+│   └── datasets/{1s,2s}/<name>/  # s.dat u.dat th.npy meta.json（2s: tr_s1_2s 等）
 ├── results/
 │   ├── checkpoints/          # 当前 v4 权重（t1v4 + R0–R4）
 │   ├── rounds/               # R0–R4 归档 + 总索引 + 对比图
@@ -172,6 +172,9 @@ runs/<YYYY-MM-DD>-<commit7>/
 6. 一次只改一个变量；同时改两处必须先在 `PROJECT_STATE.md` 的“待确认问题”里写清楚并等确认。
 7. `results/rounds/` 是 R0–R4 的历史归档，不往里面塞新实验；新实验只进 `runs/`。
 8. 注意保护CPU，内存和磁盘空间，避免实验失败。
+9. 训练/评测一律经 `tools/guard_run.sh`（阈值：RSS > 32 GB、可用内存 < 16 GB、磁盘 < 3 GB 停）；
+   实验目录用 `tools/new_run.sh` 建。两次 C+A 事故的教训：不要用 6 GB 这种 WSL 口径的阈值，
+   也不要让后台任务提前退出导致孤儿进程。
 
 ## 6. 禁区
 

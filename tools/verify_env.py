@@ -280,6 +280,17 @@ def main():
     ap.add_argument("-k", default=None, help="只跑名称含该子串的检查")
     a = ap.parse_args()
 
+    # v4 布局：官方资产在 neuron/ 下；本脚本按旧 v3 布局编写，直接提示并退出
+    if os.path.isdir(os.path.join(ROOT, "neuron", "mods")):
+        print("=" * 74)
+        print(" WModel 环境自检：检测到 v4 布局（neuron/ 下），本脚本只适用于旧 v3 布局。")
+        print(" 环境可用性请用端到端自检：")
+        print("   cd /home/Hesj/WModel && export PYTHONPATH=$PWD")
+        print("   env -u DISPLAY /home/Hesj/envs/worm_sim/bin/python -m tools.v0_check \\")
+        print("       --n 1 --seed 99 --mem-mb 2500")
+        print("=" * 74)
+        return 2
+
     # 强制 CWD（L5PC_exp.py 与 hoc 都依赖相对路径）
     os.chdir(ROOT)
     if ROOT not in sys.path:
