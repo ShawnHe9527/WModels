@@ -347,6 +347,20 @@ shuffled-z 控制 ≈ 0（R² = -0.004）。
 - 后续若要 STP/GABA_B，应作为**新协议分支**（`s` 需扩含 `g_GABAB`/STP 状态，否则部分可观测），
   不与当前 R0–R4 混用
 
+### 2.23 与原仓库（Beniaguev 2021, `SelfishGene/neuron_as_deep_net`）的 provenance 对照（2026-10-29）
+
+- `neuron/reference/simulate_L5PC_and_create_dataset.py` 与原仓库脚本 **逐字节相同**（`diff -q` 通过）
+- 原仓库默认：`excitatorySynapseType='NMDA'`、`inhibitorySynapseType='GABA_A'`；
+  **所有突触 `Use=1, Dep=0, Fac=0`（STP 关）**；`GABA_AB` 变体也设 `GABAB_ratio=0.0`
+- 我们的 `sim2` 与之对应：`ProbAMPANMDA2`（NMDA 型，含 AMPA+NMDA，0.3/3.0 + 2/70）+
+  `ProbUDFsyn2`（GABA_A，0.2/8，e=-80），STP 已显式关 ⇒ **与原仓库默认一致**
+- 因此：**STP 关、无 GABA_B 是原仓库的默认配置，不是 bug**；此前 `sim2` 未显式设 `Dep/Fac`
+  是**我们的问题**（已修，且 A/B 逐比特一致、无数据影响）
+- 真正的简化在别处：**输入协议**（原仓库逐 segment Poisson 率 + 时间平滑；我们用 tuft bundle +
+  bAP 池 + own 突触）与**建模目标**（原：胞体输出；我们：`apical_51` 的 9 因子状态）
+- GABA_B（`ProbUDFsyn2` 3.5/260.9）与 GABA_AB（`ProbGABAAB_EMS`）是原仓库的**可选变体**，
+  若要启用属于新协议分支
+
 ### 2.16 P1：慢因子窗口位移偏置正则 —— 失败（2026-10-29）
 
 `runs/2026-10-29-329f49a-r6-c-1s-drift/`：λ=1.0，罚 `mean_b[(ŝ_last−s0) − (s_true_last−s0)]²`，
