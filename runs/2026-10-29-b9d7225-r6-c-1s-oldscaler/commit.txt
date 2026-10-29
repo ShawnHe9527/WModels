@@ -1,0 +1,8 @@
+git_head: b9d7225aefbfe014487f92b825165c3461ee1a4d
+--- git status --porcelain ---
+?? runs/2026-10-29-b9d7225-r6-c-1s-oldscaler/
+--- created 2026-10-29T17:15:44+08:00 ---
+a6000middle
+/dev/nvme0n1p5  568G  525G   15G  98% /home
+               total        used        free      shared  buff/cache   available
+Mem:           502Gi        10Gi        97Gi        71Gi       394Gi       416Gi
