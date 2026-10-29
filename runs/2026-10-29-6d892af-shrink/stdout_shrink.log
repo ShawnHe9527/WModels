@@ -1,0 +1,26 @@
+/home/Hesj/.config/matplotlib is not a writable directory
+Matplotlib created a temporary cache directory at /tmp/matplotlib-ifb1ti7o because there was an issue with the default path (/home/Hesj/.config/matplotlib); it is highly recommended to set the MPLCONFIGDIR environment variable to a writable directory, in particular to speed up the import of Matplotlib and to better support multiprocessing.
+载入 t2v5_events/last.pt  σ=0.000310
+data=datasets/2s/va_s2_2s n=128 t0=4000 ks=[200, 2000, 4000, 8000]
+=== baseline ===
+  k=200:0.597  k=2000:0.440  k=4000:0.562  k=8000:0.732
+=== slow3=0.85 ===
+  k=200:0.591  k=2000:0.434  k=4000:0.550  k=8000:0.695
+=== slow3=0.70 ===
+  k=200:0.591  k=2000:0.433  k=4000:0.546  k=8000:0.670
+=== slow3=0.50 ===
+  k=200:0.597  k=2000:0.440  k=4000:0.548  k=8000:0.653
+=== Ca_HVA.h=0.70 ===
+  k=200:0.586  k=2000:0.425  k=4000:0.539  k=8000:0.680
+=== slow3=0.00 (freeze) ===
+  k=200:0.646  k=2000:0.492  k=4000:0.601  k=8000:0.696
+
+=> runs/2026-10-29-6d892af-shrink/shrink.json
+
+config                     k=200    k=2000    k=4000    k=8000   lin@8k  pla@8k
+baseline                   0.597     0.440     0.562     0.732    1.673   0.551
+slow3=0.85                 0.591     0.434     0.550     0.695    1.534   0.544
+slow3=0.70                 0.591     0.433     0.546     0.670    1.414   0.547
+slow3=0.50                 0.597     0.440     0.548     0.653    1.282   0.564
+Ca_HVA.h=0.70              0.586     0.425     0.539     0.680    1.435   0.562
+slow3=0.00 (freeze)        0.646     0.492     0.601     0.696    1.139   0.639
