@@ -233,6 +233,8 @@ def main(argv=None):
                     help="name=ckpt path, can repeat")
     ap.add_argument("--fit-data", default="tr_s1")
     ap.add_argument("--fit-n", type=int, default=3000)
+    ap.add_argument("--scaler", default=SCALER,
+                    help="L2/L3 归一化用的 scaler JSON；默认 results/data/scaler_v4.json")
     ap.add_argument("--out", required=True)
     a = ap.parse_args(argv)
 
@@ -245,7 +247,7 @@ def main(argv=None):
     log(f"data={a.data} n={n_trials} t0={t0s} ks={ks}")
 
     # baselines fitted once on the training split
-    L2, L3, ns, nu = fit_l2_l3(tr, json.load(open(SCALER, encoding="utf-8")),
+    L2, L3, ns, nu = fit_l2_l3(tr, json.load(open(a.scaler, encoding="utf-8")),
                                ks, n_fit=a.fit_n)
     ids = np.arange(ds.N)
     log("computing L1 trial means ...")
@@ -253,7 +255,7 @@ def main(argv=None):
 
     all_out = dict(config=dict(data=a.data, t0=t0s, ks=ks, n_trials=n_trials,
                                fit_data=a.fit_data, fit_n=a.fit_n,
-                               batch=a.batch),
+                               scaler=a.scaler, batch=a.batch),
                    models={})
     for spec in a.model:
         name, ckpt = spec.split("=", 1)

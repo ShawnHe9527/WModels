@@ -1,0 +1,17 @@
+git_head: 9bd48445e916ff7730812eee05043cc3c956b31a
+--- git status --porcelain ---
+ M PROJECT_STATE.md
+ M docs/HANDOFF_WORKSTATION_AGENT.md
+ M docs/PLAN_R6_C_A_AND_MIGRATION.md
+?? results/logs/env_setup_20261028.log
+?? runs/2026-10-28-9bd4844-r6-ca-rerun/
+?? runs/2026-10-28-9bd4844-r6-ca/
+?? tools/guard_run.sh
+--- reason ---
+rerun of r6_ca_2s_l512; first attempt killed at step 771/9000 on 2026-10-28 21:06
+by obsolete 6GB RSS guard (WSL-era). New guard: RSS 32GB / MemAvail 16GB / disk 10-8-3.
+--- start 2026-10-28T21:37:37+08:00 ---
+a6000middle
+/dev/nvme0n1p5  568G  502G   38G  94% /home
+               total        used        free      shared  buff/cache   available
+Mem:           502Gi        31Gi        95Gi        72Gi       374Gi       394Gi

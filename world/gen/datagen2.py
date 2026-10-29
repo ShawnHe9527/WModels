@@ -90,6 +90,14 @@ def _open(path: str, shape: tuple, mode: str):
     return np.memmap(path, dtype=np.float32, mode=mode, shape=shape)
 
 
+def _dump_meta(meta: dict, path: str) -> None:
+    """原子写 meta.json（tmp + rename），续跑时不会读到半个文件。"""
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(meta, f, ensure_ascii=False, indent=1)
+    os.replace(tmp, path)
+
+
 def _episodes(v, thr):
     m = (v > thr).astype(np.int8)
     d = np.diff(np.concatenate(([0], m, [0])))
@@ -179,10 +187,26 @@ def main(argv=None) -> int:
     mode = "r+" if done > 0 else "w+"
     starts = {k: _open(os.path.join(outdir, f"{k}.dat"), sh, mode)
               for k, sh in shapes.items()}
+
     th_arr = np.zeros((N, 27), dtype=np.float32)
+    th_path = os.path.join(outdir, "th.npy")
+    th_loaded = False
+    if done > 0 and os.path.exists(th_path):
+        old = np.load(th_path)
+        if old.shape == th_arr.shape:
+            th_arr = old
+            th_loaded = True
+            print("续跑：已载入旧 th.npy")
+        else:
+            print(f"续跑：旧 th.npy 形状 {old.shape} 不符，重建为全零")
 
     th = sim.theta()
     print(f"θ_s (27 维) 前几个: {np.round(th[:6], 4)}")
+    # th 与 trial 无关：未完成的行统一补当前 θ（续跑时旧 th.npy 可能不存在）
+    if th_loaded:
+        th_arr[done:] = th
+    else:
+        th_arr[:] = th
 
     if meta is None:
         meta = dict(
@@ -205,9 +229,17 @@ def main(argv=None) -> int:
         )
 
     rng = np.random.default_rng(a.seed)
-    # 续跑时把 RNG 推进到相同状态（前 done 条已消耗）
-    for _ in range(done):
-        _ = P2.sample_policy2(rng)
+    # 续跑：优先恢复 meta 里保存的 RNG 状态（与一次跑完完全一致）
+    if done > 0:
+        st = meta.get("rng_state") if meta else None
+        if st:
+            rng.bit_generator.state = st
+            print("续跑：已从 meta.rng_state 恢复 RNG 状态")
+        else:
+            # 旧版 meta 没有 rng_state：退化为重放策略采样（不保证一致）
+            for _ in range(done):
+                _ = P2.sample_policy2(rng)
+            print("⚠️ 续跑：meta 无 rng_state，按旧方式重放（可能与一次跑完不一致）")
 
     prog = progress.Progress(max(N - done, 1),
                              desc=f"生成 {a.name}",
@@ -272,6 +304,8 @@ def main(argv=None) -> int:
             gates=gates, pass_=bool(all(gates.values())),
         )
         meta["trials"].append(rec)
+        # 记录 RNG 状态，供精确续跑；每 20 条把 dat 与 meta 一起落盘
+        meta["rng_state"] = rng.bit_generator.state
 
         gs = "".join("1" if gates[k] else "0"
                      for k in ("G1", "G2", "G3", "G4", "G5"))
@@ -286,6 +320,8 @@ def main(argv=None) -> int:
         if (i + 1) % 20 == 0:
             for v in starts.values():
                 v.flush()
+        # 每条都落 meta（~200 KB/次），崩溃后最多丢当前 1 条
+        _dump_meta(meta, meta_path)
 
     for v in starts.values():
         v.flush()
@@ -316,9 +352,7 @@ def main(argv=None) -> int:
             pass_=int(sum(1 for x, y in zip(regs, ps) if x == r and y)),
         ) for r in ("linear", "inter", "plateau")},
     )
-    with open(meta_path, "w", encoding="utf-8") as f:
-        json.dump(meta, f, ensure_ascii=False, indent=1)
-
+    _dump_meta(meta, meta_path)
     g = meta["gate"]
     wall = g["wall_total_s"]
     print("\n" + "=" * 70)

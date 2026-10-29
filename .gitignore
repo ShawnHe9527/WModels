@@ -34,3 +34,9 @@ neuron/mods/x86_64/
 # 临时文件
 *.tmp
 tmp/
+
+# 运行日志（本地保留，不进 Git）
+results/logs/
+runs/**/stdout.log
+runs/**/monitor.log
+runs/**/*_stdout.log

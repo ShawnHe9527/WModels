@@ -282,6 +282,10 @@ def cmd_t2(a) -> int:
     outdir = os.path.join(RES, a.run)
     os.makedirs(outdir, exist_ok=True)
     prog = progress.Progress(a.steps, desc=f"T2 {a.tier}")
+    guard = (safety.MemGuard(limit_mb=a.rss_cap_mb, floor_mb=a.mem_floor_mb)
+             if a.rss_cap_mb > 0 else None)
+    log(f"护栏：rss_cap={a.rss_cap_mb:.0f}MB floor={a.mem_floor_mb:.0f}MB "
+        f"save_every={a.save_every}")
     best = float("inf")
     t0 = time.time()
     CAI = tr.meta["factor_names"].index("cai")      # 事件加权用
@@ -447,6 +451,22 @@ def cmd_t2(a) -> int:
         if not np.isnan(anc_cl_now):
             extra["ancC"] = f"{anc_cl_now:.2e}"
         prog.update(step, **extra)
+
+        # 内存护栏：触发时先落盘再退出，避免 5 h 训练白跑
+        if guard is not None:
+            try:
+                guard.check()
+            except safety.MemoryGuardTripped as e:
+                log(f"⚠️ 内存护栏触发：{e}；保存 last.pt 后退出")
+                save_ckpt(os.path.join(outdir, "last.pt"), model,
+                          step=step, sigma=best, scaler=scaler, cfg=_cfg(a),
+                          aborted=str(e))
+                return 2
+
+        # 周期性 last.pt：崩溃/被杀时可恢复到最近一次保存
+        if a.save_every > 0 and step % a.save_every == 0 and step < a.steps:
+            save_ckpt(os.path.join(outdir, "last.pt"), model,
+                      step=step, sigma=best, scaler=scaler, cfg=_cfg(a))
 
         if step % 500 == 0 or step == a.steps:
             sig = eval_single_step(model, s_va)
@@ -673,6 +693,13 @@ def main(argv=None) -> int:
                     help="③c Ca episode 判据（cai 的 log10 值）")
     p2.add_argument("--scaler", type=str, default="",
                     help="归一化 scaler JSON 路径；空=results/data/scaler_v4.json")
+    p2.add_argument("--save-every", type=int, default=500,
+                    help="每 N 步覆盖存一次 last.pt（0=只在结束时存）；"
+                         "防 5 h 训练崩溃时丢掉全部进度")
+    p2.add_argument("--rss-cap-mb", type=float, default=0.0,
+                    help="进程 RSS 上限（MB，0=关闭）；触发时存 last.pt 后退出码 2")
+    p2.add_argument("--mem-floor-mb", type=float, default=2000.0,
+                    help="系统可用内存下限（MB）；低于则存 last.pt 后退出")
     p2.add_argument("--regime-weights", type=str, default="",
                     help="② 每 trial 抽样概率 'linear,inter,plateau'，"
                          "如 '0.25,0.35,0.40'。空=均匀。仅训练用")

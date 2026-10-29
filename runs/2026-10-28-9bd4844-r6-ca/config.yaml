@@ -1,0 +1,59 @@
+experiment: r6_ca_2s_l512
+purpose: "R6 C+A: 2 s data + length=512 + full 9000 steps (stage A 2000)"
+host: a6000middle (192.168.1.94)
+date: 2026-10-28
+git_head: 9bd4844
+
+data:
+  train: datasets/2s/tr_s1_2s
+  val:   datasets/2s/va_s2_2s
+  test:  datasets/2s/te_s4_2s        # blind, 只用一次
+  scaler: /home/Hesj/QH1_dataHe/WM/scalers/scaler_v4_2s.json
+  data_root: /home/Hesj/QH1_dataHe/WM   # repo data/ symlink
+
+model:
+  tier: t2
+  d_z: 16
+  hidden: 192
+  n_layers: 2
+  init: t1v4_dz16/best.pt
+  pred_attn: false
+
+optim:
+  lr: 1.0e-3
+  steps: 9000
+  batch: 24
+  length: 512
+  stage_b_lr: 2.0e-4
+  stage_b_grad_clip: 0.3
+  grad_clip: 1.0
+
+curriculum:
+  cl_stage_a_steps: 2000
+  cl_start: 4
+  cl_steps: 128
+  cl_weight: 1.0
+  cl_weight_start: 0.1
+  anchor_weight: 0.1
+  anchor_every: 4
+  anchor_cl: 0.1
+
+sampling:
+  event_weight: 10
+  event_tau: 0.2
+  event_center_frac: 0        # B 已失败，不用
+  event_v_weight: 0           # B 已失败，不用
+  regime_weights: "0.25,0.35,0.40"
+  hot_frac: 0.5
+  seed: 1
+  val_seed: 2
+
+guards:
+  sigma_gate: 0.008
+  mem_mb: 5000
+  threads: 8
+  nice: 5
+
+outputs:
+  ckpt_dir: results/checkpoints/r6_ca_2s_l512   # -> NAS checkpoints/
+  stdout: runs/2026-10-28-9bd4844-r6-ca/stdout.log

@@ -168,9 +168,70 @@ R2 的完整 `model/L0`（总体）：
 - V 事件加权放大了 V 的陡变帧，B_best 的 Vmax 反而升到 28.82；
 - B 的训练 loss/grad 随 cl 增大持续上升（见 `fig_training.png`），闭环稳定性没有改善。
 
+### 2.8 工作站环境验证（2026-10-28，a6000middle / 192.168.1.94）
+
+- 仓库 `/home/Hesj/WModel`：`main` 与 `origin/main` 同步，HEAD `9bd4844`，工作区干净
+- 存储：`data` → `/home/Hesj/QH1_dataHe/WM`，`results/checkpoints` → 同目录 `checkpoints/`；
+  CIFS `//192.168.1.65/QH1_Labdata/dataHe`，**45 TB 可用**，NAS 侧可写（沙箱说明见 5.2-21）
+- 环境 `/home/Hesj/envs/worm_sim`（venv，Python 3.10.20）：torch 2.4.1+cpu（`cuda=False`）、
+  numpy 2.0.2、scipy 1.15.3、matplotlib 3.10.8、NEURON 8.2.0
+- `neuron/mods` 已 `nrnivmodl`，`x86_64/libnrnmech.so` 已生成（平台相关，未进 Git）
+- `tools/v0_check --n 1 --seed 99 --mem-mb 2500`：**1/1 通过**，5 门禁全过，9.8 s/trial
+- 机器 32 逻辑核 / 502 GB 内存；`/home` 只剩 9.4 GB（99%），env 占 1.2 GB
+- 权重已就位（2026-10-28 19:17 由 WSL `scp` 传入）：`t1v4_dz16/best.pt`（step 10000，val_rel 0.0314）、
+  `t2v5_events/{last,best,stageA}.pt`（last step 9000 σ=3.098e-4；best step 6500 σ=2.688e-4）；
+  三者均 `load_state_dict(strict=True)` 通过；`scaler_v4.json` 与 R2 ckpt 内嵌 scaler 逐字段一致
+- NAS 布局改为分类目录：`datasets/{1s,2s}/<name>`、`checkpoints/`、`scalers/`、`logs/`、`README.md`；
+  仓库 `data/` 仍指向 `WM`，命令用 `--data datasets/2s/<name>`
+- 2 s 数据已生成（2026-10-28 19:29–20:33，三组并行，18.6 s/trial，62 min/组，共 34.5 GB）：
+  `datasets/2s/{tr_s1_2s,va_s2_2s,te_s4_2s}`；`s`(200,80000,9,11)、`u`(200,80000,85)、`th`(200,27)，无 NaN/Inf
+- 数据集门禁：plateau **45.5 / 47.5 / 49.0%**（目标 15–45%，略超，与 1 s 的 `va_s2` 48.5% 同类）；
+  单 trial 门禁 **64 / 66 / 67%**（1 s 为 82/87/88%）。下降是**窗口长度效应**：G1 的 `up_frac ≥ 0.005`
+  按 1 s 校准，2 s 分母翻倍；抽查 7 个 trial，2 s 的 up_frac 与 1 s 前 40000 帧相当
+  （如 `tr` trial40：0.712 vs 0.643），plateau 档仍是 39/39 有平台 ⇒ 按 PLAN §2 约定记录后接受，不重跑
+- `scaler_v4_2s.json` 已生成（`make_scaler`，38 s）：u 通道与 1 s 差 1–9%，`SKv3_1.m`/`SK_E2.z`
+  的 loc 差 -46%/-20%，其余因子在 ±13% 内
+- 未开始：C+A 训练、`te_s4_2s` 评测
+
+### 2.9 R6 C+A（2 s 数据 + L=512）已执行：**不采纳**（2026-10-28/29）
+
+`runs/2026-10-28-9bd4844-r6-ca-rerun/`：2 s 数据 + `length=512` + 9000 步（stage A 2000），
+训练 **4.91 h**（17690 s），最终 σ=**3.24e-4**（门禁 0.008），RSS 峰值 **12.4 GB**
+（新护栏 32 GB 通过；旧 6 GB 阈值会在 stage B 误杀）；无发散。
+
+`te_s4_2s` 盲测（128 trial × 2 t0 = 256 样本）：
+
+| k | 10 | 200 | 2000 | 8000 |
+|---|---:|---:|---:|---:|
+| R2（1 s，zero-shot） | **0.625** | **0.568** | **0.562** | **0.890** |
+| C+A | 0.673 | 0.605 | 0.652 | 0.931 |
+
+分档（plateau）：R2 0.509/0.460/0.454/0.562 vs C+A 0.563/0.517/0.549/0.596，**全档更差**。
+
+物理指标（plateau n=37，k=8000，t0=4000）：peak F1 **0.359 vs 0.303**；
+幅度比 0.934 vs **1.339**（C+A 过冲）；nrmse 0.351 vs 0.499；峰时误差 1.50 vs 2.60 ms。
+
+⇒ 按 PLAN §8，**停止 C 路线**。R2 在 2 s 数据上仍是最好模型（zero-shot 与 1 s `te_s4` 基本一致：
+0.562/0.890 vs 0.594/0.899），说明数据本身没有变难，C+A 是实打实变差。
+
+### 2.10 工程修复（2026-10-29）
+
+- `train2 t2` 新增 `--save-every`（默认 500 步覆盖存 `last.pt`）、`--rss-cap-mb` / `--mem-floor-mb`
+  （进程内 `MemGuard`，触发时**先落盘再以退出码 2 结束**）。冒烟测试：正常 2 步存 best/last；
+  故意把 cap 设 50 MB → step 1 存 `last.pt`（含 `aborted` 字段）并 `rc=2`
+- `tools/eval_gate.py` 新增 `--scaler`（默认 `results/data/scaler_v4.json`），修掉 1 s/2 s scaler 混用；
+  本地 `results/data/scaler_v4.json` 已恢复为 1 s scaler
+- `datagen2 --resume` 修复：meta **每条 trial 原子落盘**、记录 `rng_state`、续跑恢复 RNG 状态并载入
+  `th.npy`；2-trial 对照（跑一半 SIGKILL → 续跑）验证 **s/u/th 与一次跑完逐字节一致**
+- 新增 `tools/guard_run.sh`：启动前检查（磁盘 ≥10 GB、可用内存 ≥16 GB）+ 60 s 采样 +
+  自动停机（RSS >32 GB / 可用 <16 GB / 磁盘 <3 GB），日志写 `RUN_DIR/monitor.log`
+- 新增 `tools/new_run.sh`：按 AGENTS §5 建 `runs/<date>-<commit7>-<name>/` 并写 `commit.txt`（拒绝覆盖）
+- `.gitignore`：`results/logs/`、run 目录的 `stdout.log`/`monitor.log` 不进 Git（本地保留）
+
 ## 3. 进行中
 
-- **没有训练/评测进程在跑**；最后一次训练是 2026-10-27 11:57（R5-B，9000 步）
+- **没有训练/评测进程在跑**；最后一次训练 2026-10-28 21:37–02:32（R6 C+A，9000 步，4.91 h），评测已完成
+- **R6 C+A 不采纳**：`te_s4_2s` 上全视界、全档差于 R2，物理指标也更差；按 PLAN §8 停止 C 路线
 - **R5 零训练标定失败；R5-H1 未改善；R5-B 也未改善**；H2 未启动；下一步需选更长数据/完整 9000 步干净对照/工程修复
 - **完整结果叙述文档尚未写**：当前入口是 `results/rounds/README.md` + R2/R3/R4 的 `CONCLUSIONS.md`；`DESIGN_v4.md` 原先引用的 `EXPERIMENTS_RESULTS.md` 不存在，引用已改到 `results/rounds/README.md`
 - **`runs/` 已开始使用**：`eval-gate`、`r5-calib`、`r5-h1`、`r5-b` 四个目录已有 commit/config/metrics/stdout/REPORT；但训练代码仍写 `results/checkpoints/`，需人工复制
@@ -219,6 +280,10 @@ R2 的完整 `model/L0`（总体）：
 17. **R5-H1 视界 pilot 失败**：L=512/cl=128 只跑 2000 步就评估，te_s4 k=2000 2.025、k=8000 2.960（R2 0.594/0.899）；单步 σ=0.000437（R2 0.000310）。既有欠训练，也有压缩课程/长闭环不稳定，不能当成干净的“视界有害”证据。
 18. **R5-B 事件中心采样 + V 加权失败**：9000 步后 te_s4 k=2000 1.414（B_last）/0.973（B_best），k=8000 3.199/1.858（R2 0.594/0.899）；B_last 28/256 发散；Vmax 28.82（真值 19.81），Ca F1 0.163（R2 0.329）。事件片段过拟合 + V 加权放大陡变，未解决长程。
 19. **迁移准备**：`sim2.py` 已从硬编码 `/home/neuron/...` 改为项目相对路径；`train2 t2` 新增 `--scaler`；`tools/make_scaler.py` 可为 2 s 数据算新 scaler。但 `neuron/mods/x86_64/libnrnmech.so` 是平台相关产物，工作站必须重新 `nrnivmodl`；`data/`、`results/checkpoints/` 不进 Git。
+20. **工作站 `DISPLAY` 不可达会把 NEURON 卡死**：工作站 `DISPLAY=192.168.31.175:0.0`，但该 X server 不通；`import neuron` 会阻塞在 X 连接（strace 可见 connect 6000 端口），`nrnivmodl` 同样受影响。所有 NEURON/训练命令须 `env -u DISPLAY`（或 `NEURON_MODULE_OPTIONS=-nogui`）。
+21. **DSH 会话沙箱把 `/home` 与 CIFS 挂载显示为只读**：真实挂载是 rw（`danger-full-access` 下 `touch` 通过）；默认 `workspace-write` 下 `touch data/...` 报 `Read-only file system`。写 NAS/环境需放宽沙箱，不要把“只读”误判成挂载故障。
+22. **RSS 6 GB 阈值会误杀工作站训练**：HANDOFF §18 / PLAN §8 原先沿用 WSL 7.8 GB 机器的 `RSS > 6 GB` 停止条件；工作站 502 GB 下 L=512 训练实测 RSS 4.3–6.2 GB（峰值 6.19 GB、MemAvailable 始终 >400 GB），2026-10-28 21:06 在 step 771/9000 被误杀。已改为 **RSS > 32 GB 或 MemAvailable < 16 GB** 才停。
+23. **本地 `results/data/scaler_v4.json` 目前放的是 2 s scaler**：`tools/eval_gate.py` 没有 `--scaler` 参数，评 `te_s4_2s` 时把 `WM/scalers/scaler_v4_2s.json` 复制到了该路径。以后评 1 s 数据前必须换回 1 s scaler（NAS `WM/scalers/scaler_v4.json`），否则 L2/L3 基线归一化会用错。
 
 ## 6. 待确认问题
 
@@ -282,8 +347,9 @@ A-only 和 3 s 数据暂缓。完整命令、资源预算、判据、工作站�
 
 ### 7.4 工程修复（与 R5 分开）
 
-1. 修 `datagen2 --resume` 的 RNG/`th_arr`；
-2. 用 4 个窗口对照 T1 target=`s0` 与 `s_true`，确认后再决定是否重训 T1；
-3. 把 `MemGuard.check()` 接进训练循环；
-4. 把 `train2` 的输出接入 `runs/<date>-<commit7>/`（或写一个 shell 包装器）。
+1. ✅ 修 `datagen2 --resume` 的 RNG/`th_arr`（2026-10-29，见 2.10；逐字节一致已验证）；
+2. ⬜ 用 4 个窗口对照 T1 target=`s0` 与 `s_true`，确认后再决定是否重训 T1；
+3. ✅ 把 `MemGuard.check()` 接进训练循环（`--rss-cap-mb`，触发先落盘）；
+4. ✅ `runs/` 接入：`tools/guard_run.sh`（监控/停机）+ `tools/new_run.sh`（建目录/commit.txt）；
+   周期 `last.pt` 也已加上，崩溃最多丢 `--save-every` 步。
 

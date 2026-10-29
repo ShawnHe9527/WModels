@@ -185,7 +185,9 @@ $PY -m tools.make_scaler --data tr_s1 --out /tmp/scaler_check.json --n-sample 20
 - C+A 在 `te_s4_2s` k=2000/8000 比 R2 差，且物理指标没有改善：停止 C 路线；
 - C+A 有改善但 C-only 几乎一样：说明主要是数据长度贡献，不是视界；
 - C+A 有改善且 C+A > C-only：再评估 A-only 或 3 s 数据；
-- 任何一次训练 RSS > 6 GB 或系统可用 <600 MB：立即停止，降低 batch/迁移工作站。
+- 任何一次训练 RSS > **32 GB** 或系统 `MemAvailable` < **16 GB**：立即停止，降低 batch/迁移工作站。
+  （6 GB 是 WSL 7.8 GB 机器的旧阈值，已废弃：工作站 502 GB 下 L=512 训练实测 RSS 4.3–6.2 GB，
+  2026-10-28 按 6 GB 阈值误杀过一次。）
 
 ## 9. 产出
 

@@ -1,0 +1,22 @@
+{
+ "t2v5_events": {
+  "n_trials": 37,
+  "n_diverged": 0,
+  "n_true_peaks": 59,
+  "n_pred_peaks": 58,
+  "n_matched": 21,
+  "n_missed": 38,
+  "peak_precision": 0.3620689655172414,
+  "peak_recall": 0.3559322033898305,
+  "peak_f1": 0.358974358974359,
+  "thr_precision": 0.2080476249844159,
+  "thr_recall": 0.40405569007263925,
+  "amp_ratio": 0.9337981770998768,
+  "amp_ratio_iqr": 0.7478854564592471,
+  "dt_ms": 1.5,
+  "slope": 0.6007871758325728,
+  "r_event": 0.6504700619633437,
+  "r_all": 0.7409739050577756,
+  "nrmse": 0.3512922028575659
+ }
+}

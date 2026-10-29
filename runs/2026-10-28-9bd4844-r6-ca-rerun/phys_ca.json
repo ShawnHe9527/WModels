@@ -1,0 +1,22 @@
+{
+ "r6_ca_2s_l512_rerun": {
+  "n_trials": 37,
+  "n_diverged": 0,
+  "n_true_peaks": 59,
+  "n_pred_peaks": 60,
+  "n_matched": 18,
+  "n_missed": 41,
+  "peak_precision": 0.3,
+  "peak_recall": 0.3050847457627119,
+  "peak_f1": 0.3025210084033613,
+  "thr_precision": 0.20144023413431916,
+  "thr_recall": 0.31664648910411625,
+  "amp_ratio": 1.3392999754613049,
+  "amp_ratio_iqr": 0.8904752851263826,
+  "dt_ms": 2.6,
+  "slope": 0.6398714422211266,
+  "r_event": 0.5430295209915914,
+  "r_all": 0.609866413218176,
+  "nrmse": 0.498995794570148
+ }
+}

@@ -213,6 +213,10 @@ export PYTHONPATH=$PWD
 
 必须 **1/1 通过**。不通过就不要生成数据。
 
+训练/评测统一用 `tools/guard_run.sh RUN_DIR STDOUT -- <cmd>` 跑（启动检查 + 60 s 监控 + 自动停机：
+RSS >32 GB / 可用 <16 GB / 磁盘 <3 GB），实验目录用 `tools/new_run.sh <name>` 建
+（写 `commit.txt`，拒绝覆盖）。
+
 ---
 
 ## 8. 存储与重挂载
@@ -493,7 +497,9 @@ ssh -N -L 18082:127.0.0.1:18082 Hesj@192.168.1.94
 - `data` 不可写 / mount 丢失：停止，先修存储；
 - T1/R2 checkpoint 缺失：停止，不训练；
 - 2 s 数据出现 NaN/大小异常：停止；
-- 训练 RSS 超过 6 GB 或系统可用内存 <600 MB：停止；
+- 训练 RSS 超过 **32 GB** 或系统 `MemAvailable` 低于 **16 GB**：停止。
+  （6 GB 是 WSL 7.8 GB 机器的旧阈值；工作站 502 GB 下 L=512 训练实测 RSS 4.3–6.2 GB，
+  2026-10-28 已因此误杀一次，见 `PROJECT_STATE.md` 5.2-22。）
 - `te_s4_2s` 只用一次，不能根据它继续调参。
 
 ---
