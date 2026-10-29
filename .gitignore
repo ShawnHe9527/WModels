@@ -40,3 +40,6 @@ results/logs/
 runs/**/stdout.log
 runs/**/monitor.log
 runs/**/*_stdout.log
+
+# 文献临时文件
+.paper_tmp.txt
