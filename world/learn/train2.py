@@ -301,6 +301,13 @@ def cmd_t2(a) -> int:
         log("逐因子损失权重：" + " ".join(
             f"{nm}={v:g}" for nm, v in zip(tr.meta["factor_names"], vals)))
 
+    # P1：慢因子窗口位移偏置正则的因子索引
+    DRIFT_IDX = [tr.meta["factor_names"].index(nm)
+                 for nm in getattr(a, "drift_factors", "").split(",")
+                 if nm in tr.meta["factor_names"]]
+    if getattr(a, "drift_weight", 0.0) > 0:
+        log(f"漂移正则：λ={a.drift_weight} 因子={[tr.meta['factor_names'][i] for i in DRIFT_IDX]}")
+
     for step in range(1, a.steps + 1):
         s0, u, ug, th, s_true, x = _torch(s_tr.batch_pair())
 
@@ -448,6 +455,21 @@ def cmd_t2(a) -> int:
                 w_now = a.cl_weight
             loss = loss + w_now * cl_loss / m
             cl_now = m
+
+        # ---- P1：慢因子“窗口位移偏置”正则 ----
+        # 动机（诊断 A/E0）：长程误差由系统性增量偏置累积主导，而不是随机游走。
+        # 这里罚「窗口首末位移」的均值偏差，单位取真值位移的 trial 间 std，
+        # 因此与尺度无关（λ≈1 表示“偏了 1 个 std”）。
+        if a.drift_weight > 0 and DRIFT_IDX:
+            d_pred = s_hat[:, -1] - s_prev[:, 0]        # (B,F,P)
+            d_true = s_true[:, -1] - s_prev[:, 0]
+            regs = []
+            for f in DRIFT_IDX:
+                dp = d_pred[:, f].mean()
+                dt = d_true[:, f].mean()
+                regs.append((dp - dt) ** 2)              # 归一化单位，尺度 O(1e-2..1e-3)
+            drift_now = float(torch.stack(regs).mean())
+            loss = loss + a.drift_weight * torch.stack(regs).mean()
 
         opt.zero_grad(set_to_none=True)
         loss.backward()
@@ -714,6 +736,11 @@ def main(argv=None) -> int:
                     help="归一化 scaler JSON 路径；空=results/data/scaler_v4.json")
     p2.add_argument("--factor-weights", type=str, default="",
                     help="9 个因子的损失权重（逗号分隔，空=全 1），顺序同 factor_names")
+    p2.add_argument("--drift-weight", type=float, default=0.0,
+                    help="P1 慢因子窗口位移偏置正则 λ（0=关闭；λ≈1 表示偏 1 个 std）")
+    p2.add_argument("--drift-factors", type=str,
+                    default="Ih.m,Ca_LVAst.h,Ca_HVA.h",
+                    help="漂移正则作用的因子名，逗号分隔")
     p2.add_argument("--save-every", type=int, default=500,
                     help="每 N 步覆盖存一次 last.pt（0=只在结束时存）；"
                          "防 5 h 训练崩溃时丢掉全部进度")
