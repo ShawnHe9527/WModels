@@ -1,0 +1,30 @@
+──────────────────────────────────────────────────────────────────────────────
+资源预检
+  CPU 逻辑核        : 32
+  BLAS/OMP 线程     : 4
+  本进程 RSS        : 219 MB (护栏 3000 MB)
+  系统可用内存      : 418762 MB
+  磁盘剩余          : 15 GB
+  判定              : ✅ 可运行
+──────────────────────────────────────────────────────────────────────────────
+data=datasets/1s/va_s2 n=128 t0=4000 ks=[200, 2000, 4000, 8000]
+=== OLDSC: r6_c_1s_oldsc/last.pt ===
+载入 r6_c_1s_oldsc/last.pt  σ=0.000310
+=== NOCL: r6_c_1s_nocl/last.pt ===
+载入 r6_c_1s_nocl/last.pt  σ=0.000453
+/home/Hesj/envs/worm_sim/lib/python3.10/site-packages/numpy/linalg/_linalg.py:2772: RuntimeWarning: overflow encountered in multiply
+  s = (x.conj() * x).real
+/home/Hesj/envs/worm_sim/lib/python3.10/site-packages/numpy/lib/_function_base_impl.py:4779: RuntimeWarning: invalid value encountered in subtract
+  diff_b_a = subtract(b, a)
+=> runs/2026-10-30-a36fd79-diag-nocl/diag_va.json
+=> figures runs/2026-10-30-a36fd79-diag-nocl/figs
+
+model      k     ratio   lin    int    pla   bAPshare  CasShare  |z|   cos
+OLDSC      200  0.519  0.831  0.424  0.515  0.030     nan   5.74  0.995
+OLDSC     2000  0.524  0.902  0.363  0.533  0.007     nan   5.53  0.906
+OLDSC     4000  0.730  1.114  0.693  0.645  0.019     nan   5.68  0.798
+OLDSC     8000  0.831  2.026  0.498  0.777  0.015     nan   6.77  0.693
+NOCL       200  0.745  1.525  0.593  0.659  0.030     nan   5.98  0.972
+NOCL      2000  15329.944  6.546  1782.688  35458.246  0.000     nan   56728.49  0.383
+NOCL      4000  20147408470016.000  9.420  204127862784.000  50196960509952.000  0.000     nan   22420681392128.00  0.265
+NOCL      8000  16321802995756858043412883963904.000  313019465728.000  175628322938585360513393229824.000  38779883755971846998091123130368.000  0.000     nan   inf  0.268

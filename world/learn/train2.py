@@ -176,11 +176,16 @@ def cmd_t1(a) -> int:
     va = D2.Dataset2(DATA, a.val, tier=a.tier)
     log(f"训练集 {tr}\n       验证集 {va}")
 
-    scaler = D2.compute_scaler2(tr, seed=0)
-    os.makedirs(os.path.dirname(SCALER), exist_ok=True)
-    with open(SCALER, "w", encoding="utf-8") as f:
-        json.dump(scaler, f, ensure_ascii=False, indent=1)
-    log(f"scaler → {SCALER}")
+    if getattr(a, "scaler", ""):
+        with open(a.scaler, encoding="utf-8") as f:
+            scaler = json.load(f)
+        log(f"scaler ← {a.scaler}")
+    else:
+        scaler = D2.compute_scaler2(tr, seed=0)
+        os.makedirs(os.path.dirname(SCALER), exist_ok=True)
+        with open(SCALER, "w", encoding="utf-8") as f:
+            json.dump(scaler, f, ensure_ascii=False, indent=1)
+        log(f"scaler → {SCALER}")
     log(f"  scale_s = {np.round(scaler['scale_s'], 4)}")
     log(f"  scale_u = {np.round(scaler['scale_u'], 6)}")
 
@@ -202,9 +207,12 @@ def cmd_t1(a) -> int:
     for step in range(1, a.steps + 1):
         s0, u, ug, th, s_true, x = _torch(s_tr.batch_pair())
         B, T, nf, P = s_true.shape
-        s_flat = s0.unsqueeze(1).expand(B, T, nf, P)
-        rec = model.reconstruct(s_flat, u, th, x, ug)
-        loss = F.mse_loss(rec, s_flat)
+        if getattr(a, "t1_target", "s_true") == "s0":
+            s_tgt = s0.unsqueeze(1).expand(B, T, nf, P)
+        else:
+            s_tgt = s_true
+        rec = model.reconstruct(s_tgt, u, th, x, ug)
+        loss = F.mse_loss(rec, s_tgt)
 
         opt.zero_grad(set_to_none=True)
         loss.backward()
@@ -218,7 +226,10 @@ def cmd_t1(a) -> int:
             with torch.no_grad():
                 sv, uv, ugv, thv, stv, xv = _torch(s_va.batch_pair())
                 Bv, Tv, nfv, Pv = stv.shape
-                sfv = sv.unsqueeze(1).expand(Bv, Tv, nfv, Pv)
+                if getattr(a, "t1_target", "s_true") == "s0":
+                    sfv = sv.unsqueeze(1).expand(Bv, Tv, nfv, Pv)
+                else:
+                    sfv = stv
                 rv = model.reconstruct(sfv, uv, thv, xv, ugv)
                 rel = float((rv - sfv).abs().mean())
             log(f"step {step}: train={loss.item():.3e}  val_rel={rel:.6f}")
@@ -703,6 +714,11 @@ def main(argv=None) -> int:
     p1 = sub.add_parser("t1")
     common(p1, "t1v4_dz16", 1)
     p1.add_argument("--rel-gate", type=float, default=0.05)
+    p1.add_argument("--t1-target", type=str, default="s_true",
+                    choices=["s0", "s_true"],
+                    help="T1 重构目标：s0=窗口首帧重复（旧行为）；s_true=逐帧（默认）")
+    p1.add_argument("--scaler", type=str, default="",
+                    help="T1 归一化 scaler；空=自动计算并写 results/data/scaler_v4.json")
     p1.set_defaults(func=cmd_t1)
 
     p2 = sub.add_parser("t2")

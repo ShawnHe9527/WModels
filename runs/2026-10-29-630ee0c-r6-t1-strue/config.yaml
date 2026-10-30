@@ -1,0 +1,11 @@
+experiment: r6_t1_strue
+purpose: "P6: retrain T1 with per-frame target (s_true) instead of repeated s0; same scaler as T2"
+host: a6000middle
+date: 2026-10-29
+git_head: 630ee0c
+data: {train: datasets/1s/tr_s1, val: datasets/1s/va_s2,
+       scaler: /home/Hesj/QH1_dataHe/WM/scalers/scaler_v4.json}
+model: {d_z: 16, hidden: 192, n_layers: 2}
+optim: {steps: 12000, batch: 32, length: 64, lr: 3.0e-3, grad_clip: 1.0}
+t1: {target: s_true, old_behavior: "s0 repeated (t1v4_dz16)"}
+guards: {mem_mb: 16000}

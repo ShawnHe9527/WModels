@@ -1,0 +1,10 @@
+git_head: a36fd79aee75c4a26b034472525747867ea5eb45
+--- git status --porcelain ---
+ M world/learn/train2.py
+?? runs/2026-10-29-630ee0c-r6-t1-strue/
+?? runs/2026-10-30-a36fd79-diag-nocl/
+--- created 2026-10-30T15:44:43+08:00 ---
+a6000middle
+/dev/nvme0n1p5  568G  526G   14G  98% /home
+               total        used        free      shared  buff/cache   available
+Mem:           502Gi        17Gi        75Gi        72Gi       409Gi       409Gi
