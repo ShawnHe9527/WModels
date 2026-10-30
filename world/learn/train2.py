@@ -525,6 +525,10 @@ def cmd_t2(a) -> int:
             save_ckpt(os.path.join(outdir, "last.pt"), model,
                       step=step, sigma=best, scaler=scaler, cfg=_cfg(a))
 
+        if a.snap_every > 0 and step % a.snap_every == 0 and step < a.steps:
+            save_ckpt(os.path.join(outdir, f"snap_{step:05d}.pt"), model,
+                      step=step, sigma=best, scaler=scaler, cfg=_cfg(a))
+
         if step % 500 == 0 or step == a.steps:
             sig = eval_single_step(model, s_va)
             log(f"step {step}: loss={loss.item():.3e}  单步σ={sig:.6f}")
@@ -777,6 +781,8 @@ def main(argv=None) -> int:
     p2.add_argument("--stage-b-lr", type=float, default=0.0)
     p2.add_argument("--stage-b-grad-clip", type=float, default=0.0)
     p2.add_argument("--pred-attn", action="store_true")
+    p2.add_argument("--snap-every", type=int, default=0,
+                    help="每 N 步另存 snap_<step>.pt（用于闭环轨迹诊断）")
     p2.add_argument("--slow-gate", action="store_true",
                     help="P3a：慢因子输入相关衰减门 κ（init 0.9），默认关闭")
     p2.add_argument("--n-heads", type=int, default=4)
