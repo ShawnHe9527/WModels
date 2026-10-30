@@ -1,0 +1,78 @@
+{
+ "config": {
+  "data": "datasets/1s/va_s2",
+  "t0": [
+   4000
+  ],
+  "ks": [
+   8000
+  ],
+  "n_trials": 64,
+  "fit_data": "datasets/1s/tr_s1",
+  "fit_n": 200,
+  "scaler": "/home/Hesj/QH1_dataHe/WM/scalers/scaler_v4.json",
+  "batch": 16
+ },
+ "models": {
+  "S3s02000": {
+   "ckpt": "r6_c_1s_s3_snap/snap_02000.pt",
+   "sigma": 0.0006107655353844166,
+   "results": {
+    "8000": {
+     "model": [
+      NaN,
+      NaN,
+      NaN
+     ],
+     "L0": [
+      0.46113884751684964,
+      0.3514970798772993,
+      0.5784342674916843
+     ],
+     "L1": [
+      0.2802967212172506,
+      0.21625319107810934,
+      0.3506006860072669
+     ],
+     "L2": [
+      0.4821723659716992,
+      0.41698355609243837,
+      0.5510398358029756
+     ],
+     "L3": [
+      0.47233720892108977,
+      0.3908060730434954,
+      0.566593477729475
+     ],
+     "ratio": NaN,
+     "ratio_ci": [
+      NaN,
+      NaN
+     ],
+     "diverged": 64,
+     "n": 64,
+     "regimes": {
+      "linear": {
+       "n": 31,
+       "model": NaN,
+       "L0": NaN,
+       "ratio": NaN
+      },
+      "inter": {
+       "n": 20,
+       "model": NaN,
+       "L0": NaN,
+       "ratio": NaN
+      },
+      "plateau": {
+       "n": 13,
+       "model": NaN,
+       "L0": NaN,
+       "ratio": NaN
+      }
+     }
+    }
+   }
+  }
+ }
+}
