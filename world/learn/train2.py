@@ -266,6 +266,10 @@ def cmd_t2(a) -> int:
                        hot_frac=a.hot_frac,
                        event_center_frac=a.event_center_frac,
                        event_center_thr=a.event_center_thr)
+    cl_sampler = None
+    if getattr(a, "cl_horizon", 0) > 0:
+        cl_sampler = D2.Sampler2(tr, scaler, batch=a.batch,
+                                 length=a.cl_horizon + 2, seed=a.seed + 1000)
     s_va = D2.Sampler2(va, scaler, batch=a.batch, length=a.length,
                        seed=a.val_seed + 100)
     _log_sampling(s_tr, a, tr)
@@ -406,7 +410,8 @@ def cmd_t2(a) -> int:
         anc_cl_now = float("nan")
 
         # ---- 闭环尾损失 ----
-        if a.cl_steps > 0:
+        if a.cl_steps > 0 or a.cl_horizon > 0:
+            h_target = a.cl_horizon if a.cl_horizon > 0 else a.cl_steps
             A = a.cl_stage_a_steps
             if A > 0:
                 if step <= A:
@@ -425,41 +430,56 @@ def cmd_t2(a) -> int:
                         log(f"  已存阶段 A 末检查点 stageA.pt（σ={best:.6f}）")
                     frac = (step - A) / max(a.steps - A, 1)
                     cur_cl = int(round(a.cl_start
-                                       + frac * (a.cl_steps - a.cl_start)))
+                                       + frac * (h_target - a.cl_start)))
             elif a.cl_grow_every > 0:
-                cur_cl = min(a.cl_steps, a.cl_start
+                cur_cl = min(h_target, a.cl_start
                              + (step // a.cl_grow_every) * a.cl_grow_by)
             else:
-                cur_cl = a.cl_steps
-            m = min(max(cur_cl, 2), s_true.shape[1] - 2)
-            zc = z_true[:, 0]
-            sc = s0.clone()
+                cur_cl = h_target
+            lim = a.cl_horizon if cl_sampler is not None else (s_true.shape[1] - 2)
+            m = min(max(cur_cl, 2), lim)
+            if cl_sampler is not None:
+                c0, cu, cug, cth, cst, cx = _torch(cl_sampler.batch_pair())
+                with torch.no_grad():
+                    zc = model.encode(c0.unsqueeze(1), cu[:, :1], cth, cx,
+                                      cug[:, :1]).squeeze(1)
+                sc = c0.clone()
+                u_c, ug_c, s_c, th_c = cu, cug, cst, cth
+            else:
+                zc = z_true[:, 0]
+                sc = s0.clone()
+                u_c, ug_c, s_c, th_c = u, ug, s_true, th
+            lags = sorted({min(int(x), m) for x in a.cl_lags.split(",")
+                           if int(x) > 0}) if a.cl_lags else [m]
             cl_loss = 0.0
+            n_lag = 0
             anc_cl_sum, anc_cl_n = 0.0, 0
             for k in range(m):
                 j = k + 1
-                zc_next = model.predict(zc.unsqueeze(1), u[:, j].unsqueeze(1),
-                                        th, x, ug[:, j].unsqueeze(1)
+                zc_next = model.predict(zc.unsqueeze(1), u_c[:, j].unsqueeze(1),
+                                        th_c, x, ug_c[:, j].unsqueeze(1)
                                         ).squeeze(1)
-                sc_next = model.step_residual(sc, zc, zc_next, th, x, ug[:, j])
-                cl_loss = cl_loss + F.mse_loss(sc_next, s_true[:, j])
-                # ③b：闭环段自洽。乘 m 抵消外层 `/m`，使该项不吃 m 的稀释。
+                sc_next = model.step_residual(sc, zc, zc_next, th_c, x, ug_c[:, j])
+                if j in lags:
+                    cl_loss = cl_loss + F.mse_loss(sc_next, s_c[:, j])
+                    n_lag += 1
                 if (a.anchor_cl > 0
                         and k % max(a.anchor_every, 1) == 0):
                     _zrt = model.encode(
-                        model.decode(zc_next.unsqueeze(1), th, x),
-                        u[:, j].unsqueeze(1), th, x,
-                        ug[:, j].unsqueeze(1)).squeeze(1)
+                        model.decode(zc_next.unsqueeze(1), th_c, x),
+                        u_c[:, j].unsqueeze(1), th_c, x,
+                        ug_c[:, j].unsqueeze(1)).squeeze(1)
                     _a = F.mse_loss(_zrt, zc_next)
-                    cl_loss = cl_loss + a.anchor_cl * _a * m
+                    cl_loss = cl_loss + a.anchor_cl * _a * max(len(lags), 1)
                     anc_cl_sum += float(_a)
                     anc_cl_n += 1
                 sc, zc = sc_next, zc_next
+                if a.cl_chunk > 0 and j % a.cl_chunk == 0 and j < m:
+                    sc = sc.detach()
+                    zc = zc.detach()
             if anc_cl_n:
                 anc_cl_now = anc_cl_sum / anc_cl_n
-            # 闭环权重爬坡：阶段 A 就用**轻权重** cl_weight_start，
-            # 阶段 B 内线性升到 cl_weight。若阶段 A 用满权重，进入阶段 B
-            # 会突然跌回 cl_weight_start（不连续），实测会让长视界变差。
+            # 闭环权重爬坡：阶段 A 轻权重，阶段 B 线性升到 cl_weight。
             if A > 0:
                 if step <= A:
                     w_now = a.cl_weight_start
@@ -469,7 +489,7 @@ def cmd_t2(a) -> int:
                                                         - a.cl_weight_start)
             else:
                 w_now = a.cl_weight
-            loss = loss + w_now * cl_loss / m
+            loss = loss + w_now * cl_loss / max(n_lag, 1)
             cl_now = m
 
         # ---- P1：慢因子“窗口位移偏置”正则 ----
@@ -730,6 +750,12 @@ def main(argv=None) -> int:
     p2.add_argument("--init", type=str, default="t1v4_dz16/best.pt")
     p2.add_argument("--sigma-gate", type=float, default=0.02)
     p2.add_argument("--cl-steps", type=int, default=10)
+    p2.add_argument("--cl-horizon", type=int, default=0,
+                    help="闭环训练视界（>0 时用独立长轨迹采样器；课程升到该值）")
+    p2.add_argument("--cl-chunk", type=int, default=0,
+                    help="TBPTT：每 N 步 detach 一次（0=不截断）")
+    p2.add_argument("--cl-lags", type=str, default="",
+                    help="在哪些步加损失，如 '512' 或 '64,256,512'（空=仅末端 m）")
     p2.add_argument("--cl-weight", type=float, default=1.0)
     p2.add_argument("--cl-start", type=int, default=4)
     p2.add_argument("--cl-grow-every", type=int, default=0)
