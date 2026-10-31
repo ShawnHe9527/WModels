@@ -1,0 +1,16 @@
+experiment: r6_ab_A
+purpose: "A/A+B: long-horizon TBPTT receding-horizon (horizon=512, lags=512, chunk=64)"
+host: a6000middle
+date: 2026-10-31
+git_head: 113ade1
+data: {train: datasets/1s/tr_s1, val: datasets/1s/va_s2, scaler: /home/Hesj/QH1_dataHe/WM/scalers/scaler_v4.json}
+model: {d_z: 16, hidden: 192, n_layers: 2, init: t1v4_dz16/best.pt}
+optim: {steps: 9000, batch: 24, length: 128, lr: 1.0e-3,
+        stage_b_lr: 2.0e-4, stage_b_grad_clip: 0.3}
+curriculum: {cl_stage_a_steps: 2000, cl_start: 4, cl_horizon: 512,
+             cl_chunk: 64, cl_lags: "512", cl_weight: 1.0,
+             cl_weight_start: 0.1, anchor_weight: 0.1, anchor_every: 4,
+             anchor_cl: 0.1}
+sampling: {event_weight: 10, event_tau: 0.2, regime_weights: "0.25,0.35,0.40", hot_frac: 0.5}
+seed: 1
+guards: {sigma_gate: 0.008, rss_cap_mb: 32000, mem_floor_mb: 16000, save_every: 500}
