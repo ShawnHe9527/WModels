@@ -1,0 +1,34 @@
+[
+ {
+  "lam": 0.0,
+  "ratio_agg": Infinity,
+  "mean_ratio": Infinity,
+  "median": 11.457939147949219,
+  "n": 128,
+  "sec": 82.7
+ },
+ {
+  "lam": 0.25,
+  "ratio_agg": Infinity,
+  "mean_ratio": Infinity,
+  "median": 6.320925712585449,
+  "n": 128,
+  "sec": 64.3
+ },
+ {
+  "lam": 0.5,
+  "ratio_agg": Infinity,
+  "mean_ratio": Infinity,
+  "median": 3.4020438194274902,
+  "n": 128,
+  "sec": 64.6
+ },
+ {
+  "lam": 1.0,
+  "ratio_agg": 0.33136763609563386,
+  "mean_ratio": 1.416672945022583,
+  "median": 0.5680787563323975,
+  "n": 128,
+  "sec": 64.2
+ }
+]

@@ -156,12 +156,18 @@ def main(argv=None) -> int:
             ids = list(range(st, min(st + B, a.n)))
             preds.append(rollout_batch(model, va, sc, ids, a.t0, a.k, jump, lam, cps))
         preds = np.concatenate(preds, 0)
-        num = float(np.mean((preds - base) ** 2))
-        per = np.mean((preds - base) ** 2, axis=(1, 2))
-        per0 = np.mean((l0 - base) ** 2, axis=(1, 2))
-        rows.append(dict(lam=lam, ratio_agg=num / den,
-                         mean_ratio=float(np.mean(per / per0)),
-                         median=float(np.median(per / per0)),
+        num1 = float(np.mean(np.abs(preds - base)))
+        num2 = float(np.mean((preds - base) ** 2))
+        per1 = np.mean(np.abs(preds - base), axis=(1, 2))
+        per10 = np.mean(np.abs(l0 - base), axis=(1, 2))
+        per2 = np.mean((preds - base) ** 2, axis=(1, 2))
+        per20 = np.mean((l0 - base) ** 2, axis=(1, 2))
+        rows.append(dict(lam=lam,
+                         l1_agg=num1 / float(np.mean(np.abs(l0 - base))),
+                         l1_mean=float(np.mean(per1 / per10)),
+                         l1_median=float(np.median(per1 / per10)),
+                         mse_agg=num2 / den,
+                         mse_mean=float(np.mean(per2 / per20)),
                          n=a.n, sec=round(time.time() - t, 1)))
         log(str(rows[-1]))
     os.makedirs(os.path.dirname(a.out), exist_ok=True)
