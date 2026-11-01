@@ -1,0 +1,12 @@
+git_head: ab2e28262b13839a2c898921154d06a99d28506d
+--- git status --porcelain ---
+ M runs/2026-11-01-night-p123/night.log
+?? runs/2026-11-01-8d315b2-r6_h1024/
+?? runs/2026-11-01-ab2e282-r6_Cfull/
+?? runs/2026-11-01-f7c7153-phys-eval/
+?? runs/2026-11-01-night-p123/eval_H1024.json
+--- created 2026-11-01T16:55:41+08:00 ---
+a6000middle
+/dev/nvme0n1p5  568G  526G   14G  98% /home
+               total        used        free      shared  buff/cache   available
+Mem:           502Gi        13Gi       151Gi        72Gi       337Gi       413Gi
