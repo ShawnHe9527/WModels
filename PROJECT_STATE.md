@@ -655,7 +655,10 @@ k=2000：基线 1.482、A 0.542、**A+B 0.507**；k=200（5 ms）：A+B 0.516/0.
 22. **RSS 6 GB 阈值会误杀工作站训练**：HANDOFF §18 / PLAN §8 原先沿用 WSL 7.8 GB 机器的 `RSS > 6 GB` 停止条件；工作站 502 GB 下 L=512 训练实测 RSS 4.3–6.2 GB（峰值 6.19 GB、MemAvailable 始终 >400 GB），2026-10-28 21:06 在 step 771/9000 被误杀。已改为 **RSS > 32 GB 或 MemAvailable < 16 GB** 才停。
 23. **本地 `results/data/scaler_v4.json` 目前放的是 2 s scaler**：`tools/eval_gate.py` 没有 `--scaler` 参数，评 `te_s4_2s` 时把 `WM/scalers/scaler_v4_2s.json` 复制到了该路径。以后评 1 s 数据前必须换回 1 s scaler（NAS `WM/scalers/scaler_v4.json`），否则 L2/L3 基线归一化会用错。
 
-## 6. 待确认问题
+### 6.1 未排期实验（记录，避免遗忘）
+
+- **B 单独**（视界 512、只在 64/256 加损失，不含 512）：回答“512 这个末端目标是否必要”。
+  优先级低；可在论文前补 1 seed 筛选，不必 3 seed。
 
 1. **R2 是否作为当前基线冻结？** 评估闸门确认 R2_last 是当前最好的模型，但 200 ms 不稳健（te_s4 CI 含 1，L2 更好）。是否接受“R2 只赢短/中程，200 ms 交给 L2/后续 R6”？
 2. **R5-B 之后已选 C+A**：2 s 数据 + `L=512` + 完整 9000 步；C-only 归因，A-only/3 s 暂缓。
