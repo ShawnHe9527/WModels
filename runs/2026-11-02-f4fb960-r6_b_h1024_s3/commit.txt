@@ -1,0 +1,11 @@
+git_head: f4fb96014e038178c84dd6f92621bff8b021249e
+--- git status --porcelain ---
+?? runs/2026-11-01-f7c7153-phys-eval/
+?? runs/2026-11-02-e54402c-r6_b_h1024_s2/
+?? runs/2026-11-02-f4fb960-r6_b_h1024_s3/
+?? runs/2026-11-02-night-all/
+--- created 2026-11-02T17:14:48+08:00 ---
+a6000middle
+/dev/nvme0n1p5  568G  526G   14G  98% /home
+               total        used        free      shared  buff/cache   available
+Mem:           502Gi       6.0Gi        37Gi        71Gi       458Gi       420Gi
