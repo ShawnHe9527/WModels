@@ -68,7 +68,7 @@ def main(argv=None) -> int:
         c_true = true[:, 7, :].max(1)
         c_l0 = l0[:, 7, :].max(1)
         axes[0, c].plot(t, v_true, "k", lw=1.4, label="true")
-        axes[0, c].plot(t, v_pred, "C0", lw=1.0, label="model (A+B)")
+        axes[0, c].plot(t, v_pred, "C0", lw=1.0, label=f"model ({a.model.split('/')[0]})")
         axes[0, c].plot(t, v_l0, "C7--", lw=0.8, label="L0 (persist)")
         axes[0, c].set_title(f"{r}  trial={i}")
         axes[0, c].set_ylabel("V (mV, mean)")
