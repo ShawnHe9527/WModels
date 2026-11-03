@@ -238,7 +238,8 @@ class WorldModel(nn.Module):
                  pred_attn: bool = False, n_heads: int = 4,
                  u_in_x: bool = True, n_glob: int = 0,
                  slow_gate: bool = False,
-                 slow_factors: tuple = (0, 2, 3)):
+                 slow_factors: tuple = (0, 2, 3),
+                 fast_head: bool = False):
         super().__init__()
         self.d_z = d_z
         self.n_factors = n_factors
@@ -252,6 +253,11 @@ class WorldModel(nn.Module):
                               attn=pred_attn, n_heads=n_heads,
                               u_in_x=u_in_x, n_glob=n_glob)
         self.dec = Decoder(d_z, n_factors, th_dim, hidden, n_layers)
+        self.fast_head = bool(fast_head)
+        if self.fast_head:
+            # E2：快慢双头。fast 头提供高频修正，初值 0.1 倍，可学习。
+            self.fast = Decoder(d_z, n_factors, th_dim, hidden, n_layers)
+            self.fast_scale = nn.Parameter(torch.tensor(0.1))
         if self.slow_gate:
             # P3a：慢因子的输入相关衰减门 κ（论文 Eq.1 的 diag(A_t) 最简形式）。
             # 初始化成常数 0.9（慢因子），其余因子恒为 1，等价于“起始 90% 保持”。
@@ -298,6 +304,16 @@ class WorldModel(nn.Module):
         return self.decode(self.encode(s, u, th, x, u_glob), th, x)
 
     # ------------------------------------------------------------------
+    def state_delta(self, z_prev, z_next, th, x):
+        """Dec(z_next)-Dec(z_prev)（+ 可选的 fast 头高频修正）。"""
+        d_next = self.decode(z_next, th, x)
+        d_prev = self.decode(z_prev, th, x)
+        delta = d_next - d_prev
+        if self.fast_head:
+            delta = delta + self.fast_scale * (self.fast(z_next, th, x)
+                                               - self.fast(z_prev, th, x))
+        return delta
+
     def step_residual(self, s_prev, z_prev, z_next, th, x, u_glob=None):
         """残差步：ŝ = s_prev + [Dec(z_next) − Dec(z_prev)]。
 
@@ -308,9 +324,7 @@ class WorldModel(nn.Module):
             z_next = z_next.unsqueeze(1)
         if z_prev.dim() == 2:
             z_prev = z_prev.unsqueeze(1)
-        d_next = self.decode(z_next, th, x)
-        d_prev = self.decode(z_prev, th, x)
-        delta = d_next[:, 0] - d_prev[:, 0]
+        delta = self.state_delta(z_prev, z_next, th, x)[:, 0]
         k = self.slow_kappa(z_prev, u_glob)
         if k is not None:
             delta = delta * k[:, 0].unsqueeze(-1)
@@ -361,7 +375,8 @@ def build(d_z: int = 8, hidden: int = 128, n_layers: int = 2,
           n_factors: int = 9, u_dim: int = 3, th_dim: int = 27,
           pred_attn: bool = False, n_heads: int = 4,
           u_in_x: bool = True, n_glob: int = 0,
-          slow_gate: bool = False) -> WorldModel:
+          slow_gate: bool = False, fast_head: bool = False) -> WorldModel:
     return WorldModel(n_factors, u_dim, th_dim, d_z, hidden, n_layers,
                       pred_attn=pred_attn, n_heads=n_heads,
-                      u_in_x=u_in_x, n_glob=n_glob, slow_gate=slow_gate)
+                      u_in_x=u_in_x, n_glob=n_glob, slow_gate=slow_gate,
+                      fast_head=fast_head)

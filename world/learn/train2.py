@@ -145,7 +145,8 @@ def build_model(a, th_dim: int, cfg: dict | None = None):
                 n_factors=D2.N_FACTORS, u_dim=D2.U_FEAT, th_dim=th_dim,
                 pred_attn=pred_attn, n_heads=n_heads,
                 u_in_x=False, n_glob=D2.N_GLOB,
-                slow_gate=bool(getattr(a, "slow_gate", False)))
+                slow_gate=bool(getattr(a, "slow_gate", False)),
+                fast_head=bool(getattr(a, "fast_head", False)))
     n = m.n_params()
     log(f"模型 enc={n['enc']:,} pred={n['pred']:,} dec={n['dec']:,} "
         f"total={n['total']:,}  d_z={d_z} tier={tier} attn={pred_attn}")
@@ -338,6 +339,9 @@ def cmd_t2(a) -> int:
             d_prev = model.decode(z_prev, th, x)
         s_prev = torch.cat([s0.unsqueeze(1), s_true[:, :-1]], dim=1)
         _delta = d_next - d_prev
+        if getattr(model, "fast_head", False):
+            _delta = _delta + model.fast_scale * (
+                model.fast(z_next, th, x) - model.fast(z_prev, th, x))
         _k = model.slow_kappa(z_prev, ug)
         if _k is not None:
             _delta = _delta * _k.unsqueeze(-1)
@@ -809,6 +813,8 @@ def main(argv=None) -> int:
     p2.add_argument("--pred-attn", action="store_true")
     p2.add_argument("--snap-every", type=int, default=0,
                     help="每 N 步另存 snap_<step>.pt（用于闭环轨迹诊断）")
+    p2.add_argument("--fast-head", action="store_true",
+                    help="E2：快慢双头 decoder（默认关闭）")
     p2.add_argument("--slow-gate", action="store_true",
                     help="P3a：慢因子输入相关衰减门 κ（init 0.9），默认关闭")
     p2.add_argument("--n-heads", type=int, default=4)
