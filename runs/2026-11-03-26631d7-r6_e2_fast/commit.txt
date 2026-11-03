@@ -1,0 +1,13 @@
+git_head: 26631d71aec303c19541289ae250c1a4da36bf8c
+--- git status --porcelain ---
+ M tools/make_report_figs.py
+?? runs/2026-11-01-f7c7153-phys-eval/
+?? runs/2026-11-03-26631d7-r6_e1_vevent/
+?? runs/2026-11-03-26631d7-r6_e2_fast/
+?? runs/2026-11-03-26631d7-r6_h2048/
+?? runs/2026-11-03-night-p123/
+--- created 2026-11-03T20:55:35+08:00 ---
+a6000middle
+/dev/nvme0n1p5  568G  526G   14G  98% /home
+               total        used        free      shared  buff/cache   available
+Mem:           502Gi       9.1Gi        63Gi        70Gi       429Gi       418Gi

@@ -54,7 +54,7 @@ def fig_seed():
         "基线\n(CL=64)": [0.831, 3.128, 4.781],
         "A\n(仅 512)": [0.538, 0.884, 0.836],
         "A+B\n(64/256/512)": [0.551, 0.479, 0.582],
-        "H1024\n(seed1)": [0.511],
+        "H1024\n(64/256/512/1024)": [0.511, 0.705, 0.547],
     }
     fig, ax = plt.subplots(figsize=(8, 4.5))
     for i, (name, vals) in enumerate(groups.items()):
@@ -74,24 +74,23 @@ def fig_seed():
 
 
 def fig_horizon():
-    ks = [200, 2000, 8000]
-    labels = ["5 ms", "50 ms", "200 ms"]
-    base = [load_ratio(f"{OUT}/eval_base_h1024.json", k) for k in ks]
-    h1024 = [load_ratio(f"{OUT}/eval_base_h1024.json", k) for k in ks]
-    # H1024 在同一个 json 的第二个模型；重取
-    d = json.load(open(f"{OUT}/eval_base_h1024.json"))
-    base = [d["models"]["S1base"]["results"][str(k)]["ratio"] for k in ks]
-    h1024 = [d["models"]["H1024_s1"]["results"][str(k)]["ratio"] for k in ks]
-    AB200 = "runs/2026-10-31-night-a-seeds/eval_AB_3seed_k200.json"
-    ab = [float(np.mean(load_all(AB200, k))) for k in ks]
-    fig, ax = plt.subplots(figsize=(7, 4.5))
+    labels = ["50 ms", "200 ms", "400 ms", "800 ms"]
+    base = [0.524, 0.831, 2.220, 9.549]
+    ab = [0.492, 0.479, 0.608, 0.748]
+    h1024 = [0.490, 0.588, 0.651, 0.624]
+    fig, ax = plt.subplots(figsize=(7.5, 4.6))
     ax.plot(labels, base, "o-", label="基线 (CL=64)")
-    ax.plot(labels, ab, "s-", label="A+B 均值（3 seed）")
-    ax.plot(labels, h1024, "^-", label="H1024 (seed1)")
-    ax.axhline(1.0, color="k", ls="--", lw=1)
-    ax.set_ylabel("model/L0")
-    ax.set_title("误差随评测视界变化（va_s2）")
-    ax.legend()
+    ax.plot(labels, ab, "s-", label="A+B (seed2, 全程测量)")
+    ax.plot(labels, h1024, "^-", label="H1024 (3 seed 均值)")
+    ax.axhline(1.0, color="k", ls="--", lw=1, label="L0 = 1")
+    for x, y in zip(labels, base):
+        if y > 1:
+            ax.annotate("DIV", (x, y), textcoords="offset points", xytext=(0, 6),
+                        ha="center", fontsize=8, color="C0")
+    ax.set_yscale("log")
+    ax.set_ylabel("model/L0（对数轴）")
+    ax.set_title("误差随评测视界：基线在 400/800 ms 发散，长视界模型保持有界")
+    ax.legend(fontsize=8)
     ax.grid(alpha=0.3)
     fig.tight_layout()
     fig.savefig(f"{OUT}/fig2_error_vs_horizon.png", dpi=150)
