@@ -205,6 +205,13 @@ def cmd_t1(a) -> int:
     best = float("inf")
     t0 = time.time()
 
+    def _loss_elem(d):
+        if getattr(a, "huber_beta", 0.0) > 0:
+            b = float(a.huber_beta)
+            ad = d.abs()
+            return torch.where(ad <= b, 0.5 * d * d, b * (ad - 0.5 * b))
+        return d.pow(2)
+
     for step in range(1, a.steps + 1):
         s0, u, ug, th, s_true, x = _torch(s_tr.batch_pair())
         B, T, nf, P = s_true.shape
@@ -325,6 +332,13 @@ def cmd_t2(a) -> int:
     if getattr(a, "drift_weight", 0.0) > 0:
         log(f"漂移正则：λ={a.drift_weight} 因子={[tr.meta['factor_names'][i] for i in DRIFT_IDX]}")
 
+    def _loss_elem(d):
+        if getattr(a, "huber_beta", 0.0) > 0:
+            b = float(a.huber_beta)
+            ad = d.abs()
+            return torch.where(ad <= b, 0.5 * d * d, b * (ad - 0.5 * b))
+        return d.pow(2)
+
     for step in range(1, a.steps + 1):
         s0, u, ug, th, s_true, x = _torch(s_tr.batch_pair())
 
@@ -354,7 +368,7 @@ def cmd_t2(a) -> int:
         # 注意：只有训练 loss 加权；日志/评测仍用未加权误差，保持可比。
         if a.event_weight > 0 or a.event_v_weight > 0:
             # s_hat[t] 对齐 s_true[t]（s_prev[t]=s_true[t-1]），故差分需 pad 到 L
-            se_f = (s_hat - s_true).pow(2)                      # (B,L,F,P)
+            se_f = _loss_elem(s_hat - s_true)                  # (B,L,F,P)
             if FW is not None:
                 se = (se_f * FW).sum(dim=(2, 3)) / FW.sum()     # 加权平均，保持尺度
             else:
@@ -374,12 +388,26 @@ def cmd_t2(a) -> int:
                     dv / max(a.event_v_tau, 1e-6))
             loss = (w * se).sum() / w.sum()
         else:
-            se_f = (s_hat - s_true).pow(2)
+            se_f = _loss_elem(s_hat - s_true)
             if FW is not None:
                 loss = (se_f * FW).sum() / (FW.sum() * s_hat.shape[0]
                                             * s_hat.shape[1])
             else:
                 loss = se_f.mean()
+
+        # ---- C: latent overshooting（latent 空间多步一致性）----
+        if getattr(a, "overshoot_lags", ""):
+            ov_lags = [int(x) for x in a.overshoot_lags.split(",")
+                       if 0 < int(x) < s_true.shape[1] - 1]
+            ov = 0.0
+            for k in ov_lags:
+                zz = z_true[:, 0]
+                for j in range(k):
+                    zz = model.predict(zz.unsqueeze(1), u[:, j + 1].unsqueeze(1),
+                                       th, x, ug[:, j + 1].unsqueeze(1)).squeeze(1)
+                ov = ov + F.mse_loss(zz, z_true[:, k])
+            if ov_lags:
+                loss = loss + a.overshoot_weight * ov / len(ov_lags)
 
         # ---- latent 自洽正则（latent consistency）----
         #
@@ -781,6 +809,12 @@ def main(argv=None) -> int:
                     help="① sigmoid 敏感度（归一化单位的 |Δcai| 尺度）")
     p2.add_argument("--event-v-weight", type=float, default=0.0,
                     help="①b V 事件加权强度：0=关闭。V 大幅变化帧额外加权")
+    p2.add_argument("--huber-beta", type=float, default=0.0,
+                    help="B：Huber 损失 beta（0=关闭，用 MSE）")
+    p2.add_argument("--overshoot-lags", type=str, default="",
+                    help="C：latent overshooting 的滞后步，如 '32,64,96'（空=关闭）")
+    p2.add_argument("--overshoot-weight", type=float, default=0.0,
+                    help="C：latent overshooting 权重")
     p2.add_argument("--event-v-tau", type=float, default=0.02,
                     help="①b sigmoid 敏感度（归一化单位的 |ΔV| 尺度）")
     p2.add_argument("--event-center-frac", type=float, default=0.0,
