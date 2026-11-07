@@ -278,6 +278,8 @@ class Sampler2:
                             self._draw_trials(self.batch - nh)])
         self.rng.shuffle(p)                    # 防止 hot 总排在前面
         t0 = self.rng.integers(0, ds.T - L - 1, self.batch)
+        self.last_p = p
+        self.last_t0 = t0
         if self.event_center_frac > 0:
             n_ev = min(int(round(self.event_center_frac * self.batch)),
                        self.batch)
