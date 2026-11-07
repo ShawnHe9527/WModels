@@ -301,8 +301,24 @@ def cmd_t2(a) -> int:
     n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
     log(f"可训练参数 {n_train:,}（仅 Predictor）")
 
-    opt = torch.optim.AdamW([p for p in model.parameters()
-                             if p.requires_grad], lr=a.lr, weight_decay=1e-4)
+    head = None
+    pk_times = None
+    if getattr(a, "event_head", False):
+        import torch.nn as _nn
+        from tools.ca_event_metrics import _peaks as _find_peaks
+        _ci = tr.meta["factor_names"].index("cai")
+        pk_times = []
+        for _i in range(tr.N):
+            _c = np.asarray(tr.s[_i, :, _ci, :]).max(axis=1)
+            _idx, _, _ = _find_peaks(_c, tr.dt)
+            pk_times.append(np.asarray(_idx))
+        head = _nn.Sequential(_nn.Linear(a.d_z, 64), _nn.SiLU(), _nn.Linear(64, 2))
+        log(f"事件头：delta={a.event_head_delta} weight={a.event_head_weight}")
+
+    _params = [p for p in model.parameters() if p.requires_grad]
+    if head is not None:
+        _params += list(head.parameters())
+    opt = torch.optim.AdamW(_params, lr=a.lr, weight_decay=1e-4)
     outdir = os.path.join(RES, a.run)
     os.makedirs(outdir, exist_ok=True)
     prog = progress.Progress(a.steps, desc=f"T2 {a.tier}")
@@ -408,6 +424,30 @@ def cmd_t2(a) -> int:
                 ov = ov + F.mse_loss(zz, z_true[:, k])
             if ov_lags:
                 loss = loss + a.overshoot_weight * ov / len(ov_lags)
+
+        # ---- D: 事件头（未来 delta 帧内是否有 Ca 峰 + 峰时刻）----
+        if head is not None:
+            _B, _L = z_next.shape[0], z_next.shape[1]
+            tgt = np.zeros((_B, _L), np.float32)
+            tau = np.zeros((_B, _L), np.float32)
+            for _b in range(_B):
+                _pk = pk_times[int(s_tr.last_p[_b])]
+                if len(_pk) == 0:
+                    continue
+                _tt = s_tr.last_t0[_b] + np.arange(_L)
+                _j = np.searchsorted(_pk, _tt + 1, side="left")
+                _has = _j < len(_pk)
+                _jj = np.minimum(_j, len(_pk) - 1)
+                _d = np.where(_has, _pk[_jj] - _tt, 0)
+                _m = _has & (_d > 0) & (_d <= a.event_head_delta)
+                tgt[_b] = _m
+                tau[_b] = np.where(_m, _d / float(a.event_head_delta), 0.0)
+            _out = head(z_next)
+            _tgt = torch.from_numpy(tgt)
+            _tau = torch.from_numpy(tau)
+            _bce = F.binary_cross_entropy(torch.sigmoid(_out[..., 0]), _tgt)
+            _tl = (torch.abs(_out[..., 1] - _tau) * _tgt).sum() / _tgt.sum().clamp(min=1.0)
+            loss = loss + a.event_head_weight * (_bce + _tl)
 
         # ---- latent 自洽正则（latent consistency）----
         #
@@ -813,6 +853,11 @@ def main(argv=None) -> int:
                     help="B：Huber 损失 beta（0=关闭，用 MSE）")
     p2.add_argument("--overshoot-lags", type=str, default="",
                     help="C：latent overshooting 的滞后步，如 '32,64,96'（空=关闭）")
+    p2.add_argument("--event-head", action="store_true",
+                    help="D：Ca 事件头（辅助损失，默认关闭）")
+    p2.add_argument("--event-head-delta", type=int, default=800,
+                    help="事件头预测窗口（帧）")
+    p2.add_argument("--event-head-weight", type=float, default=0.1)
     p2.add_argument("--overshoot-weight", type=float, default=0.0,
                     help="C：latent overshooting 权重")
     p2.add_argument("--event-v-tau", type=float, default=0.02,
