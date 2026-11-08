@@ -44,7 +44,7 @@ R2=$(bash tools/new_run.sh r6_dz32)
 run r6_dz32 "$R2" env -u DISPLAY "$PY" -u -m world.learn.train2 t2 \
   --data datasets/1s/tr_s1 --val datasets/1s/va_s2 --run r6_dz32 --tier t2 \
   --init t1v4_dz32/best.pt --scaler "$SCALER" \
-  --steps 9000 --batch 24 --length 128 --d-z 32 --hidden 384 --n-layers 2 --lr 1e-3 \
+  --steps 9000 --batch 24 --length 128 --d-z 32 --hidden 192 --n-layers 2 --lr 1e-3 \
   --cl-stage-a-steps 2000 --cl-start 4 --cl-steps 64 --cl-horizon 512 \
   --cl-chunk 64 --cl-lags 64,256,512 --cl-weight 1.0 --cl-weight-start 0.1 \
   --anchor-weight 0.1 --anchor-every 4 --anchor-cl 0.1 \
