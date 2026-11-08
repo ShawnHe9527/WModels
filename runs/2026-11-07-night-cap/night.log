@@ -1,0 +1,69 @@
+[2026-11-08T12:50:53+08:00] === 1) T1 d_z=32 ===
+[2026-11-08T12:50:53+08:00] 开始 t1v4_dz32 → runs/2026-11-08-93475fa-t1v4_dz32
+[2026-11-08T13:56:54+08:00] 结束 t1v4_dz32 rc=0
+[2026-11-08T13:56:54+08:00] === 2) T2 d_z=32（A+B + overshoot）===
+[2026-11-08T13:56:54+08:00] 开始 r6_dz32 → runs/2026-11-08-93475fa-r6_dz32
+[2026-11-08T13:57:54+08:00] 结束 r6_dz32 rc=1
+[2026-11-08T13:57:54+08:00] 评测 DZ32
+──────────────────────────────────────────────────────────────────────────────
+资源预检
+  CPU 逻辑核        : 32
+  BLAS/OMP 线程     : 4
+  本进程 RSS        : 218 MB (护栏 3000 MB)
+  系统可用内存      : 407104 MB
+  磁盘剩余          : 15 GB
+  判定              : ✅ 可运行
+──────────────────────────────────────────────────────────────────────────────
+data=datasets/1s/va_s2 n=128 t0=[4000] ks=[2000, 8000, 16000]
+computing L1 trial means ...
+=== DZ32: r6_dz32/last.pt ===
+Traceback (most recent call last):
+  File "/home/Hesj/miniconda3/envs/neuron_env/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/Hesj/miniconda3/envs/neuron_env/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/home/Hesj/WModel/tools/eval_gate.py", line 292, in <module>
+    raise SystemExit(main())
+  File "/home/Hesj/WModel/tools/eval_gate.py", line 263, in main
+    m, sc, cfg = load_model(ckpt, ds, a.tier)
+  File "/home/Hesj/WModel/tools/plot_v4.py", line 44, in load_model
+    ck = torch.load(os.path.join(RES, ckpt), map_location="cpu",
+  File "/home/Hesj/envs/worm_sim/lib/python3.10/site-packages/torch/serialization.py", line 1065, in load
+    with _open_file_like(f, 'rb') as opened_file:
+  File "/home/Hesj/envs/worm_sim/lib/python3.10/site-packages/torch/serialization.py", line 468, in _open_file_like
+    return _open_file(name_or_buffer, mode)
+  File "/home/Hesj/envs/worm_sim/lib/python3.10/site-packages/torch/serialization.py", line 449, in __init__
+    super().__init__(open(name, mode))
+FileNotFoundError: [Errno 2] No such file or directory: '/home/Hesj/WModel/results/checkpoints/r6_dz32/last.pt'
+[2026-11-08T13:59:32+08:00] === 3) 逐因子权重（V/cai ×2）d_z=16 ===
+[2026-11-08T13:59:32+08:00] 开始 r6_fw2 → runs/2026-11-08-93475fa-r6_fw2
+[2026-11-08T17:12:34+08:00] 结束 r6_fw2 rc=0
+[2026-11-08T17:12:34+08:00] 评测 FW2
+──────────────────────────────────────────────────────────────────────────────
+资源预检
+  CPU 逻辑核        : 32
+  BLAS/OMP 线程     : 4
+  本进程 RSS        : 218 MB (护栏 3000 MB)
+  系统可用内存      : 410546 MB
+  磁盘剩余          : 14 GB
+  判定              : ✅ 可运行
+──────────────────────────────────────────────────────────────────────────────
+data=datasets/1s/va_s2 n=128 t0=[4000] ks=[2000, 8000, 16000]
+computing L1 trial means ...
+=== FW2: r6_fw2/last.pt ===
+载入 r6_fw2/last.pt  σ=0.000310
+  t0=4000 off=0 n=16 (19.2s)
+  t0=4000 off=16 n=16 (38.8s)
+  t0=4000 off=32 n=16 (57.8s)
+  t0=4000 off=48 n=16 (77.0s)
+  t0=4000 off=64 n=16 (96.4s)
+  t0=4000 off=80 n=16 (115.5s)
+  t0=4000 off=96 n=16 (134.9s)
+  t0=4000 off=112 n=16 (153.9s)
+=> runs/2026-11-07-night-cap/eval_FW2.json
+
+model            k     model/L0  95%CI              L1/L0  L2/L0  L3/L0  div
+FW2              2000  0.430   [0.350,0.525]   0.794  0.945  0.964  0/128
+FW2              8000  0.469   [0.372,0.600]   0.561  0.912  0.967  0/128
+FW2             16000  0.455   [0.366,0.567]   0.555  0.915  0.916  0/128
+[2026-11-08T17:16:48+08:00] === 全部结束 ===
