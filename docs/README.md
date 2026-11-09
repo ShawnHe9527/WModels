@@ -8,7 +8,9 @@
 | [`MODEL_FACTS.md`](MODEL_FACTS.md) | NEURON 模型几何、通道、突触、单位等实测事实 | ✅ 引用数字前先查 |
 | [`COMPARE_Yao2026.md`](COMPARE_Yao2026.md) | 与 Yao et al. 2026 的注意力/树突整合对照 | 📎 文献参考 |
 | [`L5PC_exp_使用手册.md`](L5PC_exp_使用手册.md) | 官方 `L5PC_exp.py` 的使用说明 | 📦 资产参考 |
-| [`PLAN_R6_C_A_AND_MIGRATION.md`](PLAN_R6_C_A_AND_MIGRATION.md) | R6：2 s 数据 + C+A/C-only + 工作站迁移清单 | 🚧 当前计划 |
+| [`WM_PLAN.md`](WM_PLAN.md) | **唯一当前计划**（目标/架构/优先级/决策/判据/时间估算） | ✅ 2026-11-09 起 |
+| [`ROADMAP.md`](ROADMAP.md) | 长期研究方向（全神经元、论文故事、未来数据分支） | 📎 方向参考 |
+| [`PLAN_R6_C_A_AND_MIGRATION.md`](PLAN_R6_C_A_AND_MIGRATION.md) | R6 历史计划（已完成） | 🗄 历史 |
 | [`HANDOFF_WORKSTATION_AGENT.md`](HANDOFF_WORKSTATION_AGENT.md) | 工作站 DSH agent 交接：环境、存储、数据、训练、验收 | 📌 新 agent 先读 |
 
 结果入口不在 `docs/`：
