@@ -85,6 +85,22 @@ z_{t+1} ──Decoder──► ŝ_{t+1}  (残差)
 
 - 膨胀 TCN（感受野 128+）、小 Transformer（PatchTST 式）；3 seed。
 
+## 2.5 其他世界模型分支的可借鉴点（不止 RSSM）
+
+| 分支 | 代表 | 核心思想 | 对我们 | 取舍 |
+|---|---|---|---|---|
+| **JEPA / BYOL 式 latent 预测** | I-JEPA, V-JEPA, BYOL | 预测**未来表征**，不重建像素；EMA target 防塌缩 | 我们已有 latent 预测（OV）；可加 **EMA target encoder** 稳定长程 | ✅ 便宜，推荐 |
+| **物理信息/混合模型** | PINN 式、hybrid | 已知动力学做先验，网络只学残差 | 门控 ODE（`dm/dt=(m∞(V)-m)/τ(V)`）是**已知的**；让模型预测**残差**，可解释且省容量 | ✅ **强烈推荐** |
+| **离散/Token latent** | IRIS, DreamerV3 discrete, VQ | 离散码本表达多模态/事件 | 事件“有/无”是离散的；可做 **VQ 事件 latent** | 🟡 中等成本，事件方向 |
+| **分层/时间抽象** | Director, options | 高层慢决策 + 低层快执行 | 快慢双 latent（Stage C） | ✅ 已在计划 |
+| **集成 + 分支 rollout** | PETS, MBPO, TD-MPC | 多模型不确定性 + 短分支 rollout | 5-seed 集成已有；可加 **branched rollouts**（从真实状态多起点） | ✅ 便宜，稳健性 |
+| **生成式 decoder（扩散/flow）** | DIAMOND, Genie | 生成锐利细节 | 峰/瞬变可能受益，但 CPU 上太贵 | ❌ 暂不 |
+| **Transformer 世界模型** | IRIS, TransDreamer | 注意力长程 | 数据/算力不匹配，且全观测下收益存疑 | ❌ 暂不（仅作基线） |
+| **SSM / 线性递推** | S4, Mamba | 长序列 O(L) | H1024 已提示“更长不更好” | ❌ 低优先 |
+| **DreamerV3 工程技巧** | symlog/twohot、KL balancing | 重尾/稳定 | symlog 对应 Huber（已试，无效）；KL balancing 随 RSSM | 🟡 随 RSSM |
+
+**结论**：除了 RSSM，最值得吸收的是 **物理信息残差**、**EMA target**、**集成/分支 rollout**、**离散事件 latent**；分层已在计划内；扩散/Transformer/SSM 暂不。
+
 ## 3. 评测口径（统一）
 
 - 数据：`va_s2`（1 s）+ `te_s4_2s`（2 s 盲测）；
