@@ -194,6 +194,21 @@ def cmd_t1(a) -> int:
     s_tr = D2.Sampler2(tr, scaler, batch=a.batch, length=a.length, seed=a.seed)
     s_va = D2.Sampler2(va, scaler, batch=a.batch, length=a.length,
                        seed=a.val_seed + 100)
+    _mhl = [int(v) for v in getattr(a, "mh_lags", "").split(",") if v]
+    mh_s = (D2.Sampler2(tr, scaler, batch=a.batch, length=max(_mhl) + 2,
+                        seed=a.seed + 3000) if _mhl else None)
+    mh_heads = None
+    if _mhl:
+        import torch.nn as _nn
+        mh_heads = {k: _nn.Sequential(_nn.Linear(a.d_z, 128), _nn.SiLU(),
+                                      _nn.Linear(128, 99)) for k in _mhl}
+        for _h in mh_heads.values():
+            _nn.init.zeros_(_h[-1].weight)
+            _nn.init.zeros_(_h[-1].bias)
+    _ovl = [int(v) for v in getattr(a, "overshoot_long_lags", "").split(",") if v]
+    ov_s = (D2.Sampler2(tr, scaler, batch=a.batch, length=max(_ovl) + 2,
+                        seed=a.seed + 2000)
+            if _ovl else None)
 
     model = build_model(a, int(tr.th.shape[1]))
     opt = torch.optim.AdamW(model.parameters(), lr=a.lr, weight_decay=1e-4)
@@ -281,6 +296,21 @@ def cmd_t2(a) -> int:
                                  length=a.cl_horizon + 2, seed=a.seed + 1000)
     s_va = D2.Sampler2(va, scaler, batch=a.batch, length=a.length,
                        seed=a.val_seed + 100)
+    _mhl = [int(v) for v in getattr(a, "mh_lags", "").split(",") if v]
+    mh_s = (D2.Sampler2(tr, scaler, batch=a.batch, length=max(_mhl) + 2,
+                        seed=a.seed + 3000) if _mhl else None)
+    mh_heads = None
+    if _mhl:
+        import torch.nn as _nn
+        mh_heads = {k: _nn.Sequential(_nn.Linear(a.d_z, 128), _nn.SiLU(),
+                                      _nn.Linear(128, 99)) for k in _mhl}
+        for _h in mh_heads.values():
+            _nn.init.zeros_(_h[-1].weight)
+            _nn.init.zeros_(_h[-1].bias)
+    _ovl = [int(v) for v in getattr(a, "overshoot_long_lags", "").split(",") if v]
+    ov_s = (D2.Sampler2(tr, scaler, batch=a.batch, length=max(_ovl) + 2,
+                        seed=a.seed + 2000)
+            if _ovl else None)
     _log_sampling(s_tr, a, tr)
     if getattr(a, "event_center_frac", 0.0) > 0:
         log(f"  事件中心开窗：frac={a.event_center_frac:.2f} "
@@ -436,6 +466,36 @@ def cmd_t2(a) -> int:
                 ov = ov + F.mse_loss(zz, z_true[:, k])
             if ov_lags:
                 loss = loss + a.overshoot_weight * ov / len(ov_lags)
+
+        # ---- C2: 长滞后 latent 一致性（每 N 步）----
+        if ov_s is not None and (step % max(a.overshoot_long_every, 1) == 0):
+            o0, ou, oug, oth, ost, ox = _torch(ov_s.batch_pair())
+            with torch.no_grad():
+                oz = model.encode(ost, ou, oth, ox, oug)       # (B,L,dz)
+            zz = oz[:, 0]
+            ovl = 0.0
+            n_ok = 0
+            for j in range(max(_ovl)):
+                zz = model.predict(zz.unsqueeze(1), ou[:, j + 1].unsqueeze(1),
+                                   oth, ox, oug[:, j + 1].unsqueeze(1)).squeeze(1)
+                if (j + 1) in _ovl:
+                    ovl = ovl + F.mse_loss(zz, oz[:, j + 1])
+                    n_ok += 1
+            if n_ok:
+                loss = loss + a.overshoot_long_weight * ovl / n_ok
+
+        # ---- E: 多视界直接头（教师强制，辅助）----
+        if mh_s is not None and (step % max(a.mh_every, 1) == 0):
+            _m0, _mu, _mug, _mth, _mst, _mx = _torch(mh_s.batch_pair())
+            with torch.no_grad():
+                _mz = model.encode(_mst, _mu, _mth, _mx, _mug)     # (B,L,dz)
+            _mloss = 0.0
+            _Lm = _mz.shape[1]
+            for k, _hd in mh_heads.items():
+                pred = _hd(_mz[:, :_Lm - k]).reshape(-1, 9, 11)
+                tgt = _mst[:, k:].reshape(-1, 9, 11)
+                _mloss = _mloss + F.mse_loss(pred, tgt)
+            loss = loss + a.mh_weight * _mloss / len(mh_heads)
 
         # ---- D: 事件头（未来 delta 帧内是否有 Ca 峰 + 峰时刻）----
         if head is not None:
@@ -900,6 +960,14 @@ def main(argv=None) -> int:
     p2.add_argument("--event-head-delta", type=int, default=800,
                     help="事件头预测窗口（帧）")
     p2.add_argument("--event-head-weight", type=float, default=0.1)
+    p2.add_argument("--mh-lags", type=str, default="",
+                    help="多视界直接头：如 '64,256'（教师强制，辅助损失）")
+    p2.add_argument("--mh-weight", type=float, default=0.1)
+    p2.add_argument("--mh-every", type=int, default=10)
+    p2.add_argument("--overshoot-long-lags", type=str, default="",
+                    help="长滞后 OV：如 '128,256'（需较长的采样窗口）")
+    p2.add_argument("--overshoot-long-weight", type=float, default=0.1)
+    p2.add_argument("--overshoot-long-every", type=int, default=10)
     p2.add_argument("--overshoot-weight", type=float, default=0.0,
                     help="C：latent overshooting 权重")
     p2.add_argument("--event-v-tau", type=float, default=0.02,
