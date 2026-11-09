@@ -1,0 +1,12 @@
+git_head: d8cdd4855ad37977fcafa20d5a02472eab6937c5
+--- git status --porcelain ---
+?? figs/
+?? runs/2026-11-08-93475fa-r6_dz32/
+?? runs/2026-11-08-93475fa-t1v4_dz32/
+?? runs/2026-11-09-d8cdd48-r6_fw2_s4/
+?? runs/2026-11-09-night-fw245/
+--- created 2026-11-09T08:16:17+08:00 ---
+a6000middle
+/dev/nvme0n1p5  568G  526G   14G  98% /home
+               total        used        free      shared  buff/cache   available
+Mem:           502Gi        23Gi        60Gi        75Gi       418Gi       399Gi
