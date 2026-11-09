@@ -52,8 +52,8 @@ train2 r6_mh 1 "MH" "--mh-lags 64,256 --mh-every 10 --mh-weight 0.1"
 ev MH r6_mh/last.pt
 ev MH_2s r6_mh/last.pt datasets/2s/te_s4_2s
 
-say "=== 3) 事件输出 seed 2 ==="
-train2 r6_eventout_s2 2 "EO-s2" "--event-out --event-out-weight 0.1"
-ev EO_s2 r6_eventout_s2/last.pt
+say "=== 3) 事件输出修复版（阈值注入 p>0.5）==="
+train2 r6_eventout_thr 1 "EO-thr" "--event-out --event-out-weight 0.1 --event-out-thr 0.5"
+ev EO_thr r6_eventout_thr/last.pt
 
 say "=== 全部结束 ==="
