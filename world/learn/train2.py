@@ -415,6 +415,8 @@ def cmd_t2(a) -> int:
             _eo = model.event_head(z_next)              # (B,L,12)
             _ep = torch.sigmoid(_eo[..., 0])            # (B,L)
             _ea = F.softplus(_eo[..., 1:])              # (B,L,P)
+            if getattr(a, "event_out_thr", 0.0) > 0:
+                _ep = _ep * (_ep > a.event_out_thr).float()
             s_hat = s_hat.clone()
             s_hat[:, :, CAI, :] = (s_hat[:, :, CAI, :]
                                    + _ep.unsqueeze(-1) * _ea)
@@ -955,6 +957,8 @@ def main(argv=None) -> int:
     p2.add_argument("--event-out", action="store_true",
                     help="显式事件输出：cai 上 spike-and-slab 注入（默认关闭）")
     p2.add_argument("--event-out-weight", type=float, default=0.1)
+    p2.add_argument("--event-out-thr", type=float, default=0.0,
+                    help=">0 时只在 p>thr 的帧注入（减少对平滑基底的干扰）")
     p2.add_argument("--event-head", action="store_true",
                     help="D：Ca 事件头（辅助损失，默认关闭）")
     p2.add_argument("--event-head-delta", type=int, default=800,
