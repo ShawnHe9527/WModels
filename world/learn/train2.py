@@ -146,7 +146,8 @@ def build_model(a, th_dim: int, cfg: dict | None = None):
                 pred_attn=pred_attn, n_heads=n_heads,
                 u_in_x=False, n_glob=D2.N_GLOB,
                 slow_gate=bool(getattr(a, "slow_gate", False)),
-                fast_head=bool(getattr(a, "fast_head", False)))
+                fast_head=bool(getattr(a, "fast_head", False)),
+                event_out=bool(getattr(a, "event_out", False)))
     n = m.n_params()
     log(f"模型 enc={n['enc']:,} pred={n['pred']:,} dec={n['dec']:,} "
         f"total={n['total']:,}  d_z={d_z} tier={tier} attn={pred_attn}")
@@ -303,7 +304,7 @@ def cmd_t2(a) -> int:
 
     head = None
     pk_times = None
-    if getattr(a, "event_head", False):
+    if getattr(a, "event_head", False) or getattr(a, "event_out", False):
         import torch.nn as _nn
         from tools.ca_event_metrics import _peaks as _find_peaks
         _ci = tr.meta["factor_names"].index("cai")
@@ -312,8 +313,12 @@ def cmd_t2(a) -> int:
             _c = np.asarray(tr.s[_i, :, _ci, :]).max(axis=1)
             _idx, _, _ = _find_peaks(_c, tr.dt)
             pk_times.append(np.asarray(_idx))
+    if getattr(a, "event_head", False):
+        import torch.nn as _nn
         head = _nn.Sequential(_nn.Linear(a.d_z, 64), _nn.SiLU(), _nn.Linear(64, 2))
         log(f"事件头：delta={a.event_head_delta} weight={a.event_head_weight}")
+    if getattr(a, "event_out", False):
+        log(f"显式事件输出：weight={a.event_out_weight}")
 
     _params = [p for p in model.parameters() if p.requires_grad]
     if head is not None:
@@ -376,6 +381,13 @@ def cmd_t2(a) -> int:
         if _k is not None:
             _delta = _delta * _k.unsqueeze(-1)
         s_hat = s_prev + _delta
+        if getattr(model, "event_out", False):
+            _eo = model.event_head(z_next)              # (B,L,12)
+            _ep = torch.sigmoid(_eo[..., 0])            # (B,L)
+            _ea = F.softplus(_eo[..., 1:])              # (B,L,P)
+            s_hat = s_hat.clone()
+            s_hat[:, :, CAI, :] = (s_hat[:, :, CAI, :]
+                                   + _ep.unsqueeze(-1) * _ea)
         # ---- ① 事件加权损失 ----
         #
         # 实测 98.6% 的帧是静息的，事件帧误差虽大 2.6 倍，但对 MSE 只贡献 3.7%
@@ -448,6 +460,33 @@ def cmd_t2(a) -> int:
             _bce = F.binary_cross_entropy(torch.sigmoid(_out[..., 0]), _tgt)
             _tl = (torch.abs(_out[..., 1] - _tau) * _tgt).sum() / _tgt.sum().clamp(min=1.0)
             loss = loss + a.event_head_weight * (_bce + _tl)
+
+        # ---- 显式事件输出损失（cai 峰 spike-and-slab）----
+        if getattr(a, "event_out", False):
+            _pk_all = pk_times
+            _B = s_true.shape[0]
+            _L = s_true.shape[1]
+            _lab = torch.zeros(_B, _L)
+            _amp = torch.zeros(_B, _L, s_true.shape[3])
+            for _b in range(_B):
+                _pk = _pk_all[int(s_tr.last_p[_b])]
+                if len(_pk) == 0:
+                    continue
+                _tt = s_tr.last_t0[_b] + np.arange(_L)
+                _ins = np.isin(_tt, _pk)
+                if not _ins.any():
+                    continue
+                _lab[_b] = torch.from_numpy(_ins.astype(np.float32))
+                _cai_b = s_true[_b, :, CAI, :]
+                _rise = torch.clamp(_cai_b - torch.cat(
+                    [_cai_b[:1], _cai_b[:-1]]), min=0)
+                _amp[_b] = _rise * torch.from_numpy(_ins.astype(np.float32)).unsqueeze(-1)
+            _eo2 = model.event_head(z_next)
+            _bce = F.binary_cross_entropy(torch.sigmoid(_eo2[..., 0]), _lab)
+            _msum = _lab.sum().clamp(min=1.0)
+            _l1 = ((F.softplus(_eo2[..., 1:]) - _amp).abs()
+                   * _lab.unsqueeze(-1)).sum() / _msum
+            loss = loss + a.event_out_weight * (_bce + _l1)
 
         # ---- latent 自洽正则（latent consistency）----
         #
@@ -853,6 +892,9 @@ def main(argv=None) -> int:
                     help="B：Huber 损失 beta（0=关闭，用 MSE）")
     p2.add_argument("--overshoot-lags", type=str, default="",
                     help="C：latent overshooting 的滞后步，如 '32,64,96'（空=关闭）")
+    p2.add_argument("--event-out", action="store_true",
+                    help="显式事件输出：cai 上 spike-and-slab 注入（默认关闭）")
+    p2.add_argument("--event-out-weight", type=float, default=0.1)
     p2.add_argument("--event-head", action="store_true",
                     help="D：Ca 事件头（辅助损失，默认关闭）")
     p2.add_argument("--event-head-delta", type=int, default=800,

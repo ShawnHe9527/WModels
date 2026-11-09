@@ -239,7 +239,8 @@ class WorldModel(nn.Module):
                  u_in_x: bool = True, n_glob: int = 0,
                  slow_gate: bool = False,
                  slow_factors: tuple = (0, 2, 3),
-                 fast_head: bool = False):
+                 fast_head: bool = False,
+                 event_out: bool = False):
         super().__init__()
         self.d_z = d_z
         self.n_factors = n_factors
@@ -253,6 +254,12 @@ class WorldModel(nn.Module):
                               attn=pred_attn, n_heads=n_heads,
                               u_in_x=u_in_x, n_glob=n_glob)
         self.dec = Decoder(d_z, n_factors, th_dim, hidden, n_layers)
+        self.event_out = bool(event_out)
+        self.event_f = 7                       # cai 的因子下标（协议固定）
+        if self.event_out:
+            # 显式事件输出：cai 上的 spike-and-slab（p × amp 叠加）
+            self.event_head = nn.Sequential(
+                nn.Linear(d_z, 64), nn.SiLU(), nn.Linear(64, 1 + 11))
         self.fast_head = bool(fast_head)
         if self.fast_head:
             # E2：快慢双头。fast 头提供高频修正，初值 0.1 倍，可学习。
@@ -328,7 +335,14 @@ class WorldModel(nn.Module):
         k = self.slow_kappa(z_prev, u_glob)
         if k is not None:
             delta = delta * k[:, 0].unsqueeze(-1)
-        return s_prev + delta
+        out = s_prev + delta
+        if self.event_out:
+            _o = self.event_head(z_next[:, 0])
+            _p = torch.sigmoid(_o[:, :1])
+            _a = torch.nn.functional.softplus(_o[:, 1:])
+            out = out.clone()
+            out[:, self.event_f, :] = out[:, self.event_f, :] + _p * _a
+        return out
 
     @torch.no_grad()
     def rollout(self, s0, u_seq, th, x, use_residual: bool = True,
@@ -375,8 +389,9 @@ def build(d_z: int = 8, hidden: int = 128, n_layers: int = 2,
           n_factors: int = 9, u_dim: int = 3, th_dim: int = 27,
           pred_attn: bool = False, n_heads: int = 4,
           u_in_x: bool = True, n_glob: int = 0,
-          slow_gate: bool = False, fast_head: bool = False) -> WorldModel:
+          slow_gate: bool = False, fast_head: bool = False,
+          event_out: bool = False) -> WorldModel:
     return WorldModel(n_factors, u_dim, th_dim, d_z, hidden, n_layers,
                       pred_attn=pred_attn, n_heads=n_heads,
                       u_in_x=u_in_x, n_glob=n_glob, slow_gate=slow_gate,
-                      fast_head=fast_head)
+                      fast_head=fast_head, event_out=event_out)
