@@ -75,6 +75,34 @@ def kl(mu_q, lv_q, mu_p, lv_p):
                   / torch.exp(lv_p).clamp(min=1e-6) - 1).mean()
 
 
+@torch.no_grad()
+def rollout_eval(m, enc, dec, ds, sc, ks, t0, n_trials):
+    """用先验 μ 闭环 rollout，返回 {k: model/L0}。"""
+    loc = np.asarray(sc["loc_s"], np.float32)[:, None]
+    scl = np.asarray(sc["scale_s"], np.float32)[:, None]
+    K = max(ks)
+    out = {k: [] for k in ks}
+    for i in range(n_trials):
+        probe = D2.Sampler2(ds, sc, batch=1, length=K + 1, seed=0)
+        s0, u_tok, ug, th, st, x = probe.batch_window(t0, K + 1, 1, off=i)
+        s0t, tht, xt = _t(s0), _t(th), _t(x)
+        u = _t(np.ascontiguousarray(u_tok.transpose(0, 1, 3, 2)))
+        z = enc(s0t.unsqueeze(0), u[:, :1], tht, xt, _t(ug)[:, :1]).squeeze(1)
+        h = torch.zeros(1, m.h_dim)
+        for j in range(K):
+            h = m.gru(torch.cat([z, u[:, j + 1].mean(-1)], -1), h)
+            mp, _ = m.prior(h).chunk(2, -1)
+            z = mp
+            if (j + 1) in ks:
+                rec = dec(z.unsqueeze(1), tht, xt).squeeze(1)
+                pred = rec.squeeze(0).numpy() * scl + loc
+                true = np.asarray(ds.s[i, t0 + j + 1])
+                l0 = np.asarray(ds.s[i, t0])
+                out[j + 1].append(float(np.abs(pred - true).mean()
+                                        / np.abs(l0 - true).mean()))
+    return {k: float(np.mean(v)) for k, v in out.items()}
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser()
     ap.add_argument("--data", default="datasets/1s/tr_s1")
@@ -85,7 +113,13 @@ def main(argv=None):
     ap.add_argument("--hidden", type=int, default=128)
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--kl-weight", type=float, default=0.1)
-    ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument("--seed", type=int, default=4)
+    ap.add_argument("--cl-horizon", type=int, default=512)
+    ap.add_argument("--cl-lags", default="64,256,512")
+    ap.add_argument("--cl-chunk", type=int, default=64)
+    ap.add_argument("--cl-stage-a", type=int, default=2000)
+    ap.add_argument("--eval-ks", default="2000,8000,16000")
+    ap.add_argument("--eval-n", type=int, default=128)
     ap.add_argument("--out", default="runs/rssm.json")
     a = ap.parse_args(argv)
 
@@ -106,6 +140,8 @@ def main(argv=None):
 
     m = RSSM(hidden=a.hidden)
     opt = torch.optim.AdamW(m.parameters(), lr=a.lr, weight_decay=1e-4)
+    cl_s = D2.Sampler2(tr, sc, batch=a.batch, length=a.cl_horizon + 2,
+                       seed=a.seed + 1000)
     s_tr = D2.Sampler2(tr, sc, batch=a.batch, length=a.length, seed=a.seed,
                        p_trial=None, hot_frac=0.5, event_center_frac=0.0,
                        event_center_thr=0.02)
@@ -122,14 +158,42 @@ def main(argv=None):
                   x).reshape_as(s_true)
         loss_rec = F.mse_loss(rec, s_true)
         loss = loss_rec + a.kl_weight * kl(mq, lq, mp, lp)
+
+        # ---- CL：先验采样闭环 + 多滞后损失 ----
+        if a.cl_horizon > 0:
+            c0, cu, cug, cth, cst, cx = cl_s.batch_pair()
+            c0t, ctht, cxt, cstt = _t(c0), _t(cth), _t(cx), _t(cst)
+            cu_t = _t(np.ascontiguousarray(cu.transpose(0, 1, 3, 2)))
+            with torch.no_grad():
+                zc = enc(cstt, cu_t, ctht, cxt, _t(cug))[:, 0]
+            frac = max(0.0, (step - a.cl_stage_a) / max(a.steps - a.cl_stage_a, 1))
+            hh = int(round(4 + frac * (a.cl_horizon - 4)))
+            lags = [int(v) for v in a.cl_lags.split(",") if 0 < int(v) <= hh]
+            hz = torch.zeros(zc.shape[0], m.h_dim)
+            zz = zc
+            cl = 0.0
+            for j in range(hh):
+                hz = m.gru(torch.cat([zz, cu_t[:, j + 1].mean(-1)], -1), hz)
+                mp2, _ = m.prior(hz).chunk(2, -1)
+                zz = mp2
+                if (j + 1) in lags:
+                    rec2 = dec(zz.unsqueeze(1), ctht, cxt).squeeze(1)
+                    cl = cl + F.mse_loss(rec2, cstt[:, j + 1])
+                if a.cl_chunk > 0 and (j + 1) % a.cl_chunk == 0 and (j + 1) < hh:
+                    zz = zz.detach(); hz = hz.detach()
+            if lags:
+                loss = loss + cl / len(lags)
         opt.zero_grad(set_to_none=True)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(m.parameters(), 1.0)
         opt.step()
         if step % 1 == 0:
             log(f"step {step}: rec={loss_rec.item():.4e} kl={kl(mq,lq,mp,lp).item():.4f}")
+    eks = [int(v) for v in a.eval_ks.split(",")]
+    res = rollout_eval(m, enc, dec, tr, sc, eks, 4000, a.eval_n)
+    log(f"eval: {res}")
     os.makedirs(os.path.dirname(a.out), exist_ok=True)
-    json.dump(dict(steps=a.steps), open(a.out, "w"))
+    json.dump(dict(steps=a.steps, eval=res), open(a.out, "w"))
     return 0
 
 
