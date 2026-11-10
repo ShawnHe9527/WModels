@@ -329,6 +329,10 @@ def cmd_t2(a) -> int:
         f"（仅 enc/dec，{len(sd)} 个张量）")
     for p in list(model.enc.parameters()) + list(model.dec.parameters()):
         p.requires_grad_(False)
+    if getattr(a, "unfreeze_dec", False):
+        for p in model.dec.parameters():
+            p.requires_grad_(True)
+        log(f"解冻 Decoder（dec_lr={a.dec_lr:.1e}）")
     n_train = sum(p.numel() for p in model.parameters() if p.requires_grad)
     log(f"可训练参数 {n_train:,}（仅 Predictor）")
 
@@ -350,10 +354,15 @@ def cmd_t2(a) -> int:
     if getattr(a, "event_out", False):
         log(f"显式事件输出：weight={a.event_out_weight}")
 
-    _params = [p for p in model.parameters() if p.requires_grad]
+    _dec_ids = {id(p) for p in model.dec.parameters()} if getattr(a, "unfreeze_dec", False) else set()
+    _pred = [p for p in model.parameters() if p.requires_grad and id(p) not in _dec_ids]
+    _dec = [p for p in model.parameters() if p.requires_grad and id(p) in _dec_ids]
     if head is not None:
-        _params += list(head.parameters())
-    opt = torch.optim.AdamW(_params, lr=a.lr, weight_decay=1e-4)
+        _pred += list(head.parameters())
+    _groups = [{"params": _pred, "lr": a.lr}]
+    if _dec:
+        _groups.append({"params": _dec, "lr": a.dec_lr})
+    opt = torch.optim.AdamW(_groups, weight_decay=1e-4)
     outdir = os.path.join(RES, a.run)
     os.makedirs(outdir, exist_ok=True)
     prog = progress.Progress(a.steps, desc=f"T2 {a.tier}")
@@ -685,8 +694,9 @@ def cmd_t2(a) -> int:
         clip_now = a.grad_clip
         if a.cl_stage_a_steps > 0 and step > a.cl_stage_a_steps:
             if a.stage_b_lr > 0:
-                for g in opt.param_groups:
-                    g["lr"] = a.stage_b_lr
+                opt.param_groups[0]["lr"] = a.stage_b_lr
+                for _g in opt.param_groups[1:]:
+                    _g["lr"] = a.dec_lr
             if a.stage_b_grad_clip > 0:
                 clip_now = a.stage_b_grad_clip
         gn = float(torch.nn.utils.clip_grad_norm_(
@@ -964,6 +974,9 @@ def main(argv=None) -> int:
     p2.add_argument("--event-head-delta", type=int, default=800,
                     help="事件头预测窗口（帧）")
     p2.add_argument("--event-head-weight", type=float, default=0.1)
+    p2.add_argument("--unfreeze-dec", action="store_true",
+                    help="解冻 Decoder 做端到端微调（默认关闭）")
+    p2.add_argument("--dec-lr", type=float, default=2e-4)
     p2.add_argument("--mh-lags", type=str, default="",
                     help="多视界直接头：如 '64,256'（教师强制，辅助损失）")
     p2.add_argument("--mh-weight", type=float, default=0.1)
