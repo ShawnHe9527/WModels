@@ -142,7 +142,9 @@ def eval_model(m, ds, sc, ks, t0s, n_trials, batch, L1_by_id, L2, L3, ns, nu,
                fit_trials):
     """Return {k: {model,L0,L1,L2,L3, ...}} plus per-sample arrays."""
     out = {int(k): dict(model=[], L0=[], L1=[], L2=[], L3=[], regime=[],
-                        bad=0) for k in ks}
+                        absf=[], bad=0) for k in ks}
+    for _k in out:
+        out[_k]["names"] = list(ds.meta["factor_names"])
     t_start = time.time()
     for t0 in t0s:
         for off in range(0, n_trials, batch):
@@ -173,10 +175,12 @@ def eval_model(m, ds, sc, ks, t0s, n_trials, batch, L1_by_id, L2, L3, ns, nu,
                 out[k]["L2"].append(e2)
                 out[k]["L3"].append(e3)
                 out[k]["regime"].append(ds.regimes[ids])
+                _sc = np.asarray(sc["scale_s"], np.float32)[None, :, None]
+                out[k]["absf"].append(np.abs((p - st[:, k]) * _sc).mean(axis=2))
                 out[k]["bad"] += int(np.asarray(bad).sum())
             log(f"  t0={t0} off={off} n={n} ({time.time()-t_start:.1f}s)")
     for k in out:
-        for key in ("model", "L0", "L1", "L2", "L3", "regime"):
+        for key in ("model", "L0", "L1", "L2", "L3", "regime", "absf"):
             out[k][key] = np.concatenate(out[k][key], axis=0)
     return out
 
@@ -203,6 +207,18 @@ def summarize(block, k):
     res["ratio_ci"] = rci
     res["diverged"] = int(np.asarray(d["model"]).size - np.isfinite(m).sum())
     res["n"] = int(m.size)
+    absf = np.asarray(d["absf"])
+    regs = np.asarray(d["regime"])
+    names = d.get("names")
+    if names is None:
+        names = [f"f{i}" for i in range(absf.shape[1])]
+    res["abs_mae"] = {n: float(np.nanmean(absf[:, i])) for i, n in enumerate(names)}
+    res["abs_mae_regime"] = {}
+    for r in ("linear", "inter", "plateau"):
+        msk = regs == r
+        if msk.any():
+            res["abs_mae_regime"][r] = {
+                n: float(np.nanmean(absf[msk, i])) for i, n in enumerate(names)}
     # per-regime
     regs = np.asarray(d["regime"])
     res["regimes"] = {}
