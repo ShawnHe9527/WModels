@@ -25,9 +25,13 @@ def roll(m, ds, sc, i, t0, K):
     return np.asarray(out)
 
 def main():
+    import sys
+    ck = sys.argv[1] if len(sys.argv) > 1 else "r6_fw2/last.pt"
+    out = sys.argv[2] if len(sys.argv) > 2 else "runs/2026-11-11-errdecomp/bias.json"
     safety.preflight(limit_mb=6000)
     ds = D2.Dataset2("data","datasets/1s/va_s2",tier="t2")
-    m,sc,cfg = load_model("r6_fw2/last.pt", ds, "t2")
+    m,sc,cfg = load_model(ck, ds, "t2")
+    print("ckpt", ck)
     loc=np.asarray(sc["loc_s"],np.float32)[:,None]; scl=np.asarray(sc["scale_s"],np.float32)[:,None]
     ci=ds.meta["factor_names"].index("cai"); vi=ds.meta["factor_names"].index("V")
     regs=np.asarray(ds.regimes); ids=np.where(regs=="plateau")[0][:43]
@@ -52,6 +56,6 @@ def main():
     json.dump(dict(cai_signed=float(dc.mean()), V_signed=float(dv.mean()),
                    cai_slope=float(sc_[0]) if len(cc)>2 else None,
                    V_slope=float(sv_[0]) if len(vv)>2 else None),
-              open("runs/2026-11-11-errdecomp/bias.json","w"), indent=1)
+              open(out,"w"), indent=1)
 
 if __name__=="__main__": main()

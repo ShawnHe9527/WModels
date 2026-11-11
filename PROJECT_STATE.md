@@ -1,6 +1,6 @@
 # PROJECT_STATE.md — WModel2 当前状态
 
-> 最后更新：2026-11-09（世界模型改进方案与 11-09 讨论纪要并入 `docs/WM_PLAN.md`）
+> 最后更新：2026-11-11（结果补到 §2.65；当前计划已同步到 `docs/WM_PLAN.md`，旧 §7.3 C+A 仅作历史）
 > 本文件是**当前进度与决策的唯一入口**；稳定事实与规则见 `AGENTS.md`。
 > 读法：先看“目标/已完成/进行中”，再看“已知问题/待确认问题”。
 
@@ -9,7 +9,8 @@
 | 文档 | 作用 |
 |---|---|
 | **`PROJECT_STATE.md`**（本文件） | 进度、实验结论、待确认问题 |
-| **`docs/WM_PLAN.md`** | **唯一当前计划**：目标、架构、优先级、决策、判据、时间估算 |
+| **`docs/WM_PLAN.md`** | **唯一当前计划**：目标、阶段、优先级、已关闭项、判据、时间表、Stage 2–3（2026-11-11 修订） |
+| `docs/PLAN_NEW_SETTING.md` | 换问题设定详细方案（C2/B2/C1/A2），`WM_PLAN` 附录 |
 | `docs/DESIGN_v4.md` / `docs/MODEL_FACTS.md` | 设计与模型事实（引用数字前先查） |
 | `docs/ROADMAP.md` | 长期方向（全神经元、论文故事、未来数据分支） |
 | `docs/README.md` | 文档总索引与可信度规则 |
@@ -1041,15 +1042,32 @@ k=2000：基线 1.482、A 0.542、**A+B 0.507**；k=200（5 ms）：A+B 0.516/0.
 - **S2 未改善**：200/400 ms 与 2 s 盲测都差于 FW2，2 s 数据没有抬高上界；
 - 两项均否决。
 
-## 3. 进行中
+### 2.66 pinball 分位数损失（q=0.85）：部分有效，未达预注册判据（2026-11-11）
 
-- **没有训练/评测进程在跑**；最后一次训练 2026-10-28 21:37–02:32（R6 C+A，9000 步，4.91 h），评测已完成
-- **R6 C+A 不采纳**：`te_s4_2s` 上全视界、全档差于 R2，物理指标也更差；按 PLAN §8 停止 C 路线
-- **R5 零训练标定失败；R5-H1 未改善；R5-B 也未改善**；H2 未启动；下一步需选更长数据/完整 9000 步干净对照/工程修复
-- **完整结果叙述文档尚未写**：当前入口是 `results/rounds/README.md` + R2/R3/R4 的 `CONCLUSIONS.md`；`DESIGN_v4.md` 原先引用的 `EXPERIMENTS_RESULTS.md` 不存在，引用已改到 `results/rounds/README.md`
-- **`runs/` 已开始使用**：`eval-gate`、`r5-calib`、`r5-h1`、`r5-b` 四个目录已有 commit/config/metrics/stdout/REPORT；但训练代码仍写 `results/checkpoints/`，需人工复制
+seed 4（与 FW2 s4 同 seed 对比），`va_s2`，128 trial：
+
+| 模型 | 50 ms | 200 ms | 400 ms | cai峰 signed | V峰 signed | V峰 \|err\| |
+|---|---:|---:|---:|---:|---:|---:|
+| FW2 s4 | 0.484 | 0.666 | 0.783 | −0.102 | −7.19 mV | 13.49 |
+| **PB（pinball）** | 0.486 | **0.660** | **0.710** | −0.106 | **−6.54 mV** | **11.08** |
+
+- **400 ms 改善**（0.783→0.710），V 峰 \|err\| 从 13.5→11.1 mV，V 压缩斜率 0.71→0.82；
+- **但 signed 偏差没有修好**（cai −0.102→−0.106；V −7.19→−6.54），未达“V ≥−3 mV / cai ≥−0.03”；
+- 200 ms 基本持平（0.660 vs 0.666）；
+- ⇒ **部分有效（偏向长程），但系统性幅度偏差仍在**。
+
+## 3. 进行中（2026-11-11）
+
+- **没有训练/评测进程在跑**；最新结果见 §2.48–2.65（B1/B2/TDNN 基线、D 辅助事件头、EO 显式事件输出、
+  OV/FW2、长滞后 OV、RSSM-lite、FW2 5 seed、FT/S2）。
+- **Stage 1 当前主配置候选**：FW2（5 seed **0.508/0.563** @200/400 ms；2 s 盲测 s1 **0.395/0.401** @200/800 ms）；
+  OV 为 200 ms 对照（5 seed **0.493** @200 ms）。定稿与补齐见 `docs/WM_PLAN.md` §4（P0）。
+- **当前计划入口**：`docs/WM_PLAN.md`（P0 定稿 → P1 C2/B2 → Stage 2 → Stage 3）；
+  旧 §7.3 的 C+A 已不是当前计划，仅作历史。
+- **`runs/` 已开始使用**：`eval-gate`、`r5-calib`、`r5-h1`、`r5-b` 等目录已有 commit/config/metrics/stdout/REPORT；
+  训练代码仍写 `results/checkpoints/`，需人工复制。
 - **GitHub 已上传**：`main` 已 push 到 `https://github.com/ShawnHe9527/WModels.git`；
-  首个 commit `f201cf3`（164 个文件，9.9 MB）；`data/`、`results/checkpoints/`、`results/archive/`、`*.pt` 均未上传
+  首个 commit `f201cf3`（164 个文件，9.9 MB）；`data/`、`results/checkpoints/`、`results/archive/`、`*.pt` 均未上传。
 
 ## 4. 关键决策与理由
 
@@ -1118,6 +1136,10 @@ k=2000：基线 1.482、A 0.542、**A+B 0.507**；k=200（5 ms）：A+B 0.516/0.
 
 ## 7. 下一步（待确认后执行）
 
+> ⚠️ **2026-11-11 状态说明**：§7.1–§7.4 是 R5/R6 时期的历史计划，**不要按 §7.3 的 C+A 直接排期**。
+> 当前执行计划、优先级、已关闭项、Stage 2/3 与时间表见 [`docs/WM_PLAN.md`](docs/WM_PLAN.md)；
+> §7.5 是当前计划入口摘要。
+
 ### 7.1 已完成的标定（失败）
 
 R5 零训练标定已经在 `runs/2026-10-26-be60d2d-r5-calib/` 执行：
@@ -1168,4 +1190,14 @@ A-only 和 3 s 数据暂缓。完整命令、资源预算、判据、工作站�
 3. ✅ 把 `MemGuard.check()` 接进训练循环（`--rss-cap-mb`，触发先落盘）；
 4. ✅ `runs/` 接入：`tools/guard_run.sh`（监控/停机）+ `tools/new_run.sh`（建目录/commit.txt）；
    周期 `last.pt` 也已加上，崩溃最多丢 `--save-every` 步。
+
+### 7.5 当前计划入口（2026-11-11）
+
+- **唯一当前计划**：[`docs/WM_PLAN.md`](docs/WM_PLAN.md)（目标/阶段/优先级/已关闭项/判据/时间表/Stage 2–3）。
+- **详细换设定方案**：[`docs/PLAN_NEW_SETTING.md`](docs/PLAN_NEW_SETTING.md)（C2/B2/C1/A2 的具体做法，WM_PLAN 附录）。
+- **当前主配置**：FW2 主候选（5 seed 0.508/0.563 @200/400 ms）；OV 200 ms 对照（5 seed 0.493）。
+- **下一步**：P0 定稿 FW2/OV（同一评测/5 seed/盲测）→ P1 C2 事件密集 + B2 点过程/峰模板 → Stage 2；
+  不以 §7.3 的 C+A 为当前计划。
+- **已关闭**：Huber、长滞后 OV、RSSM-lite、简单 spike-and-slab/辅助事件头、d_z32、decoder FT、2 s 数据训练、
+  B1/B2/TDNN 朴素基线（作为负基线保留）。
 
