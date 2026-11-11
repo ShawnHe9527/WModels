@@ -478,6 +478,15 @@ def cmd_t2(a) -> int:
             if ov_lags:
                 loss = loss + a.overshoot_weight * ov / len(ov_lags)
 
+        # ---- 分位数（pinball）损失：纠正极值低估 ----
+        if getattr(a, "pinball_q", 0.0) > 0:
+            _pf = [tr.meta["factor_names"].index(f.strip())
+                   for f in a.pinball_factors.split(",") if f.strip()]
+            _d = s_true[:, :, _pf, :] - s_hat[:, :, _pf, :]
+            _q = float(a.pinball_q)
+            _pl = torch.maximum(_q * _d, (_q - 1.0) * _d).mean()
+            loss = loss + a.pinball_weight * _pl
+
         # ---- C2: 长滞后 latent 一致性（每 N 步）----
         if ov_s is not None and (step % max(a.overshoot_long_every, 1) == 0):
             o0, ou, oug, oth, ost, ox = _torch(ov_s.batch_pair())
@@ -974,6 +983,12 @@ def main(argv=None) -> int:
     p2.add_argument("--event-head-delta", type=int, default=800,
                     help="事件头预测窗口（帧）")
     p2.add_argument("--event-head-weight", type=float, default=0.1)
+    p2.add_argument("--pinball-q", type=float, default=0.0,
+                    help="分位数损失 q（0=关闭；0.85 把预测推向高分位）")
+    p2.add_argument("--pinball-weight", type=float, default=0.1)
+    p2.add_argument("--pinball-factors", type=str, default="cai,V")
+    p2.add_argument("--calib", type=str, default="",
+                    help="逐因子仿射校准 'a1,b1;...'（空=关闭）")
     p2.add_argument("--unfreeze-dec", action="store_true",
                     help="解冻 Decoder 做端到端微调（默认关闭）")
     p2.add_argument("--dec-lr", type=float, default=2e-4)
