@@ -1,0 +1,93 @@
+[2026-11-12T12:05:54+08:00] === 1) 独立 V 头（seed4）===
+[2026-11-12T12:05:54+08:00] 训练 r6_vhead (VH seed=4) → runs/2026-11-12-a22f10e-r6_vhead
+[2026-11-12T12:06:54+08:00] 训练结束 r6_vhead rc=1
+[2026-11-12T12:06:54+08:00] 评测 VH
+──────────────────────────────────────────────────────────────────────────────
+资源预检
+  CPU 逻辑核        : 32
+  BLAS/OMP 线程     : 4
+  本进程 RSS        : 216 MB (护栏 3000 MB)
+  系统可用内存      : 485861 MB
+  磁盘剩余          : 13 GB
+  判定              : ✅ 可运行
+──────────────────────────────────────────────────────────────────────────────
+data=datasets/1s/va_s2 n=128 t0=[4000] ks=[2000, 8000, 16000]
+computing L1 trial means ...
+=== VH: r6_vhead/last.pt ===
+Traceback (most recent call last):
+  File "/home/Hesj/miniconda3/envs/neuron_env/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/Hesj/miniconda3/envs/neuron_env/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/home/Hesj/WModel/tools/eval_gate.py", line 308, in <module>
+    raise SystemExit(main())
+  File "/home/Hesj/WModel/tools/eval_gate.py", line 279, in main
+    m, sc, cfg = load_model(ckpt, ds, a.tier)
+  File "/home/Hesj/WModel/tools/plot_v4.py", line 44, in load_model
+    ck = torch.load(os.path.join(RES, ckpt), map_location="cpu",
+  File "/home/Hesj/envs/worm_sim/lib/python3.10/site-packages/torch/serialization.py", line 1065, in load
+    with _open_file_like(f, 'rb') as opened_file:
+  File "/home/Hesj/envs/worm_sim/lib/python3.10/site-packages/torch/serialization.py", line 468, in _open_file_like
+    return _open_file(name_or_buffer, mode)
+  File "/home/Hesj/envs/worm_sim/lib/python3.10/site-packages/torch/serialization.py", line 449, in __init__
+    super().__init__(open(name, mode))
+FileNotFoundError: [Errno 2] No such file or directory: '/home/Hesj/WModel/results/checkpoints/r6_vhead/last.pt'
+──────────────────────────────────────────────────────────────────────────────
+资源预检
+  CPU 逻辑核        : 32
+  BLAS/OMP 线程     : 4
+  本进程 RSS        : 270 MB (护栏 6000 MB)
+  系统可用内存      : 485722 MB
+  磁盘剩余          : 13 GB
+  判定              : ✅ 可运行
+──────────────────────────────────────────────────────────────────────────────
+Traceback (most recent call last):
+  File "/home/Hesj/miniconda3/envs/neuron_env/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/home/Hesj/miniconda3/envs/neuron_env/lib/python3.10/runpy.py", line 86, in _run_code
+    exec(code, run_globals)
+  File "/home/Hesj/WModel/tools/bias_check.py", line 61, in <module>
+    if __name__=="__main__": main()
+  File "/home/Hesj/WModel/tools/bias_check.py", line 33, in main
+    m,sc,cfg = load_model(ck, ds, "t2")
+  File "/home/Hesj/WModel/tools/plot_v4.py", line 44, in load_model
+    ck = torch.load(os.path.join(RES, ckpt), map_location="cpu",
+  File "/home/Hesj/envs/worm_sim/lib/python3.10/site-packages/torch/serialization.py", line 1065, in load
+    with _open_file_like(f, 'rb') as opened_file:
+  File "/home/Hesj/envs/worm_sim/lib/python3.10/site-packages/torch/serialization.py", line 468, in _open_file_like
+    return _open_file(name_or_buffer, mode)
+  File "/home/Hesj/envs/worm_sim/lib/python3.10/site-packages/torch/serialization.py", line 449, in __init__
+    super().__init__(open(name, mode))
+FileNotFoundError: [Errno 2] No such file or directory: '/home/Hesj/WModel/results/checkpoints/r6_vhead/last.pt'
+[2026-11-12T12:08:20+08:00] === 2) 输入历史 u-hist=3（seed2）===
+[2026-11-12T12:08:20+08:00] 训练 r6_uhist (UH seed=2) → runs/2026-11-12-a22f10e-r6_uhist
+[2026-11-12T15:59:23+08:00] 训练结束 r6_uhist rc=0
+[2026-11-12T15:59:23+08:00] 评测 UH
+──────────────────────────────────────────────────────────────────────────────
+资源预检
+  CPU 逻辑核        : 32
+  BLAS/OMP 线程     : 4
+  本进程 RSS        : 217 MB (护栏 3000 MB)
+  系统可用内存      : 489541 MB
+  磁盘剩余          : 13 GB
+  判定              : ✅ 可运行
+──────────────────────────────────────────────────────────────────────────────
+data=datasets/1s/va_s2 n=128 t0=[4000] ks=[2000, 8000, 16000]
+computing L1 trial means ...
+=== UH: r6_uhist/last.pt ===
+载入 r6_uhist/last.pt  σ=0.000347
+  t0=4000 off=0 n=16 (309.5s)
+  t0=4000 off=16 n=16 (591.8s)
+  t0=4000 off=32 n=16 (786.8s)
+  t0=4000 off=48 n=16 (1068.9s)
+  t0=4000 off=64 n=16 (1257.1s)
+  t0=4000 off=80 n=16 (1559.1s)
+  t0=4000 off=96 n=16 (1756.1s)
+  t0=4000 off=112 n=16 (2039.9s)
+=> runs/2026-11-12-night-vh-uh/eval_UH.json
+
+model            k     model/L0  95%CI              L1/L0  L2/L0  L3/L0  div
+UH               2000  0.551   [0.448,0.675]   0.794  1.008  0.963  0/128
+UH               8000  0.702   [0.531,0.912]   0.561  0.950  0.938  0/128
+UH              16000  0.983   [0.687,1.380]   0.555  1.100  0.985  5/128
+[2026-11-12T16:33:30+08:00] === 全部结束 ===

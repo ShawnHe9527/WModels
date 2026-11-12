@@ -1,0 +1,29 @@
+git_head: 5f86707055a04934407a7cb39c1287f2fedd6aa0
+--- git status --porcelain ---
+ M docs/PLAN_NEW_SETTING.md
+ M docs/README.md
+ M docs/ROADMAP.md
+?? figs/
+?? runs/2026-11-08-93475fa-r6_dz32/
+?? runs/2026-11-08-93475fa-t1v4_dz32/
+?? runs/2026-11-11-17d3aae-r6_pinball2/
+?? runs/2026-11-11-9533aed-r6_pinball2_s2/
+?? runs/2026-11-11-errdecomp/bias.json
+?? runs/2026-11-11-errdecomp/bias_pinball.json
+?? runs/2026-11-11-night-pinball2/
+?? runs/2026-11-12-5f86707-r6_e0/
+?? runs/2026-11-12-a22f10e-r6_uhist/
+?? runs/2026-11-12-a22f10e-r6_vhead/
+?? runs/2026-11-12-night-e01/
+?? runs/2026-11-12-night-vh-uh/
+?? runs/2026-11-12-pred-figs/
+?? tools/fig_predictions.py
+?? tools/night_e01_2026_11_12.sh
+?? tools/regime_bias.py
+?? tools/t1_bias.py
+?? tools/t1_bias2.py
+--- created 2026-11-12T13:02:05+08:00 ---
+a6000middle
+/dev/nvme0n1p5  568G  527G   12G  98% /home
+               total        used        free      shared  buff/cache   available
+Mem:           502Gi        23Gi        46Gi       1.9Gi       432Gi       473Gi

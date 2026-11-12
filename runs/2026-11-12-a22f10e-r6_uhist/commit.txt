@@ -1,0 +1,22 @@
+git_head: a22f10e550c7698cf6ecde15a45be82a43d7edd4
+--- git status --porcelain ---
+ M docs/PLAN_NEW_SETTING.md
+ M docs/README.md
+ M docs/ROADMAP.md
+ M world/learn/train2.py
+?? figs/
+?? runs/2026-11-08-93475fa-r6_dz32/
+?? runs/2026-11-08-93475fa-t1v4_dz32/
+?? runs/2026-11-11-17d3aae-r6_pinball2/
+?? runs/2026-11-11-9533aed-r6_pinball2_s2/
+?? runs/2026-11-11-errdecomp/bias.json
+?? runs/2026-11-11-errdecomp/bias_pinball.json
+?? runs/2026-11-11-night-pinball2/
+?? runs/2026-11-12-a22f10e-r6_uhist/
+?? runs/2026-11-12-a22f10e-r6_vhead/
+?? runs/2026-11-12-night-vh-uh/
+--- created 2026-11-12T12:08:20+08:00 ---
+a6000middle
+/dev/nvme0n1p5  568G  527G   12G  98% /home
+               total        used        free      shared  buff/cache   available
+Mem:           502Gi        22Gi        61Gi       1.9Gi       418Gi       474Gi
