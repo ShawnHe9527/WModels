@@ -477,7 +477,7 @@ def cmd_t2(a) -> int:
                 for j in range(k):
                     zz = model.predict(zz.unsqueeze(1), u[:, j + 1].unsqueeze(1),
                                        th, x, ug[:, j + 1].unsqueeze(1),
-                                       uh=model.u_hist_window(u)[:, j + 1:j + 2]).squeeze(1)
+                                       uh=(model.u_hist_window(u)[:, j + 1:j + 2] if model.u_hist > 0 else None)).squeeze(1)
                 ov = ov + F.mse_loss(zz, z_true[:, k])
             if ov_lags:
                 loss = loss + a.overshoot_weight * ov / len(ov_lags)
@@ -502,7 +502,7 @@ def cmd_t2(a) -> int:
             for j in range(max(_ovl)):
                 zz = model.predict(zz.unsqueeze(1), ou[:, j + 1].unsqueeze(1),
                                    oth, ox, oug[:, j + 1].unsqueeze(1),
-                                   uh=model.u_hist_window(ou)[:, j + 1:j + 2]).squeeze(1)
+                                   uh=(model.u_hist_window(ou)[:, j + 1:j + 2] if model.u_hist > 0 else None)).squeeze(1)
                 if (j + 1) in _ovl:
                     ovl = ovl + F.mse_loss(zz, oz[:, j + 1])
                     n_ok += 1
@@ -654,7 +654,7 @@ def cmd_t2(a) -> int:
                 j = k + 1
                 zc_next = model.predict(zc.unsqueeze(1), u_c[:, j].unsqueeze(1),
                                         th_c, x, ug_c[:, j].unsqueeze(1),
-                                        uh=model.u_hist_window(u_c)[:, j:j + 1]
+                                        uh=(model.u_hist_window(u_c)[:, j:j + 1] if model.u_hist > 0 else None)
                                         ).squeeze(1)
                 sc_next = model.step_residual(sc, zc, zc_next, th_c, x, ug_c[:, j])
                 if j in lags:
