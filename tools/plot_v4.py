@@ -53,7 +53,9 @@ def load_model(ckpt: str, ds, tier: str = "t2"):
                 u_in_x=False, n_glob=D2.N_GLOB,
                 slow_gate=bool(cfg.get("slow_gate", False)),
                 fast_head=bool(cfg.get("fast_head", False)),
-                event_out=bool(cfg.get("event_out", False)))
+                event_out=bool(cfg.get("event_out", False)),
+                v_head=bool(cfg.get("v_head", False)),
+                u_hist=int(cfg.get("u_hist", 0)))
     m.load_state_dict(ck["model"])
     m.eval()
     log(f"载入 {ckpt}  σ={ck.get('sigma', float('nan')):.6f}")

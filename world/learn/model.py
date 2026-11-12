@@ -129,7 +129,7 @@ class Predictor(nn.Module):
     """
 
     def __init__(self, d_z: int = 8, u_dim: int = 3, th_dim: int = 27,
-                 hidden: int = 128, n_layers: int = 2, u_summary: int = 16,
+                 hidden: int = 128, n_layers: int = 2, u_hist: int = 0, u_summary: int = 16,
                  attn: bool = False, n_heads: int = 4,
                  u_in_x: bool = True, n_glob: int = 0):
         super().__init__()
@@ -152,7 +152,9 @@ class Predictor(nn.Module):
             self.mlp_u = _mlp(cu, hidden, u_summary, 1)
             merged = u_summary
 
-        self.net = _mlp(d_z + merged + th_dim + self.n_glob,
+        self.u_hist = int(u_hist)
+        self.u_dim_p = int(u_dim)
+        self.net = _mlp(d_z + merged + th_dim + self.n_glob + self.u_dim_p * self.u_hist,
                         hidden, d_z, n_layers)
         self.ln = nn.LayerNorm(d_z)
         # ‼️ `use_ln_out` 必须为 False！
@@ -179,7 +181,7 @@ class Predictor(nn.Module):
         xb = x.view(1, P, 1).expand(B * T, P, 1)
         return torch.cat([up, xb], dim=-1), B, T, P
 
-    def forward(self, z, u, th, x, u_glob=None):
+    def forward(self, z, u, th, x, u_glob=None, uh=None):
         """z:(B,T,d_z)  u:(B,T,Cu,Pu) → z_next:(B,T,d_z)。"""
         B, T, dz = z.shape
         tok, B2, T2, P = self._tokens(u, x)
@@ -202,10 +204,14 @@ class Predictor(nn.Module):
             uu = torch.cat([hu.mean(1), hu.amax(1)], dim=-1)
             us = uu[..., :self.u_summary]
 
-        de = self.net(torch.cat([zf, us, thb] +
-                                ([u_glob.reshape(B * T, -1)]
-                                 if self.n_glob else []),
-                                dim=-1)).reshape(B, T, dz)
+        _parts = [zf, us, thb]
+        if self.n_glob:
+            _parts.append(u_glob.reshape(B * T, -1))
+        if self.u_hist:
+            if uh is None:
+                raise ValueError("Predictor 需要 uh（u_hist>0）")
+            _parts.append(uh.reshape(B * T, -1))
+        de = self.net(torch.cat(_parts, dim=-1)).reshape(B, T, dz)
         out = z + de
         if getattr(self, "use_ln_out", False):
             out = self.ln(out)
@@ -240,7 +246,9 @@ class WorldModel(nn.Module):
                  slow_gate: bool = False,
                  slow_factors: tuple = (0, 2, 3),
                  fast_head: bool = False,
-                 event_out: bool = False):
+                 event_out: bool = False,
+                 v_head: bool = False,
+                 u_hist: int = 0):
         super().__init__()
         self.d_z = d_z
         self.n_factors = n_factors
@@ -250,10 +258,19 @@ class WorldModel(nn.Module):
         self.slow_gate = bool(slow_gate)
         self.enc = Encoder(n_factors, u_dim, th_dim, d_z, hidden, n_layers,
                            u_in_x=u_in_x, n_glob=n_glob)
+        self.u_hist = int(u_hist)
         self.pred = Predictor(d_z, u_dim, th_dim, hidden, n_layers,
                               attn=pred_attn, n_heads=n_heads,
-                              u_in_x=u_in_x, n_glob=n_glob)
+                              u_in_x=u_in_x, n_glob=n_glob,
+                              u_hist=self.u_hist)
         self.dec = Decoder(d_z, n_factors, th_dim, hidden, n_layers)
+        self.v_head = bool(v_head)
+        if self.v_head:
+            self.vh = nn.Sequential(nn.Linear(d_z, 64), nn.SiLU(),
+                                    nn.Linear(64, n_factors * 0 + 11))
+            nn.init.zeros_(self.vh[-1].weight)
+            nn.init.zeros_(self.vh[-1].bias)
+        self.v_idx = 8                     # V 的因子下标（协议固定）
         self.event_out = bool(event_out)
         self.event_f = 7                       # cai 的因子下标（协议固定）
         if self.event_out:
@@ -301,8 +318,22 @@ class WorldModel(nn.Module):
     def encode(self, s, u, th, x, u_glob=None):
         return self.enc(s, u, th, x, u_glob)
 
-    def predict(self, z, u, th, x, u_glob=None):
-        return self.pred(z, u, th, x, u_glob)
+    def predict(self, z, u, th, x, u_glob=None, uh=None):
+        return self.pred(z, u, th, x, u_glob, uh)
+
+    def u_hist_window(self, u):
+        """u:(B,T,Cu,Pu) → (B,T,Cu*k)：最近 k 步的 token 均值（不足补 0）。"""
+        if self.u_hist <= 0:
+            return None
+        B, T, Cu, Pu = u.shape
+        pooled = u.mean(-1)                       # (B,T,Cu)
+        outs = [torch.zeros(B, T, Cu) for _ in range(self.u_hist)]
+        for lag in range(1, self.u_hist + 1):
+            shifted = torch.zeros_like(pooled)
+            if lag < T:
+                shifted[:, lag:] = pooled[:, :T - lag]
+            outs[lag - 1] = shifted
+        return torch.cat(outs, dim=-1)
 
     def decode(self, z, th, x):
         return self.dec(z, th, x)
@@ -316,6 +347,10 @@ class WorldModel(nn.Module):
         d_next = self.decode(z_next, th, x)
         d_prev = self.decode(z_prev, th, x)
         delta = d_next - d_prev
+        if self.v_head:
+            delta = delta.clone()
+            delta[..., self.v_idx, :] = (delta[..., self.v_idx, :]
+                                         + self.vh(z_next) - self.vh(z_prev))
         if self.fast_head:
             delta = delta + self.fast_scale * (self.fast(z_next, th, x)
                                                - self.fast(z_prev, th, x))
@@ -368,7 +403,9 @@ class WorldModel(nn.Module):
             ut = u_seq[:, j]
             gt = None if ug_seq is None else ug_seq[:, j]
             z_next = self.predict(z.unsqueeze(1), ut.unsqueeze(1), th, x,
-                                  None if gt is None else gt.unsqueeze(1)
+                                  None if gt is None else gt.unsqueeze(1),
+                                  uh=(self.u_hist_window(u_seq)[:, j:j + 1]
+                                      if self.u_hist > 0 else None)
                                   ).squeeze(1)
             if use_residual:
                 s_hat = self.step_residual(s_hat, z, z_next, th, x, gt)
@@ -390,8 +427,10 @@ def build(d_z: int = 8, hidden: int = 128, n_layers: int = 2,
           pred_attn: bool = False, n_heads: int = 4,
           u_in_x: bool = True, n_glob: int = 0,
           slow_gate: bool = False, fast_head: bool = False,
-          event_out: bool = False) -> WorldModel:
+          event_out: bool = False, v_head: bool = False,
+          u_hist: int = 0) -> WorldModel:
     return WorldModel(n_factors, u_dim, th_dim, d_z, hidden, n_layers,
                       pred_attn=pred_attn, n_heads=n_heads,
                       u_in_x=u_in_x, n_glob=n_glob, slow_gate=slow_gate,
-                      fast_head=fast_head, event_out=event_out)
+                      fast_head=fast_head, event_out=event_out,
+                      v_head=v_head, u_hist=u_hist)

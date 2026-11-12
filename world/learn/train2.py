@@ -147,7 +147,9 @@ def build_model(a, th_dim: int, cfg: dict | None = None):
                 u_in_x=False, n_glob=D2.N_GLOB,
                 slow_gate=bool(getattr(a, "slow_gate", False)),
                 fast_head=bool(getattr(a, "fast_head", False)),
-                event_out=bool(getattr(a, "event_out", False)))
+                event_out=bool(getattr(a, "event_out", False)),
+                v_head=bool(getattr(a, "v_head", False)),
+                u_hist=int(getattr(a, "u_hist", 0)))
     n = m.n_params()
     log(f"模型 enc={n['enc']:,} pred={n['pred']:,} dec={n['dec']:,} "
         f"total={n['total']:,}  d_z={d_z} tier={tier} attn={pred_attn}")
@@ -406,7 +408,8 @@ def cmd_t2(a) -> int:
         with torch.no_grad():
             z_true = model.encode(s_true, u, th, x, ug)      # (B,T,dz)
         z_prev = torch.cat([z_true[:, :1], z_true[:, :-1]], dim=1)
-        z_next = model.predict(z_prev, u, th, x, ug)
+        z_next = model.predict(z_prev, u, th, x, ug,
+                               uh=model.u_hist_window(u))
 
         d_next = model.decode(z_next, th, x)
         with torch.no_grad():
@@ -473,7 +476,8 @@ def cmd_t2(a) -> int:
                 zz = z_true[:, 0]
                 for j in range(k):
                     zz = model.predict(zz.unsqueeze(1), u[:, j + 1].unsqueeze(1),
-                                       th, x, ug[:, j + 1].unsqueeze(1)).squeeze(1)
+                                       th, x, ug[:, j + 1].unsqueeze(1),
+                                       uh=model.u_hist_window(u)[:, j + 1:j + 2]).squeeze(1)
                 ov = ov + F.mse_loss(zz, z_true[:, k])
             if ov_lags:
                 loss = loss + a.overshoot_weight * ov / len(ov_lags)
@@ -497,7 +501,8 @@ def cmd_t2(a) -> int:
             n_ok = 0
             for j in range(max(_ovl)):
                 zz = model.predict(zz.unsqueeze(1), ou[:, j + 1].unsqueeze(1),
-                                   oth, ox, oug[:, j + 1].unsqueeze(1)).squeeze(1)
+                                   oth, ox, oug[:, j + 1].unsqueeze(1),
+                                   uh=model.u_hist_window(ou)[:, j + 1:j + 2]).squeeze(1)
                 if (j + 1) in _ovl:
                     ovl = ovl + F.mse_loss(zz, oz[:, j + 1])
                     n_ok += 1
@@ -648,7 +653,8 @@ def cmd_t2(a) -> int:
             for k in range(m):
                 j = k + 1
                 zc_next = model.predict(zc.unsqueeze(1), u_c[:, j].unsqueeze(1),
-                                        th_c, x, ug_c[:, j].unsqueeze(1)
+                                        th_c, x, ug_c[:, j].unsqueeze(1),
+                                        uh=model.u_hist_window(u_c)[:, j:j + 1]
                                         ).squeeze(1)
                 sc_next = model.step_residual(sc, zc, zc_next, th_c, x, ug_c[:, j])
                 if j in lags:
@@ -775,7 +781,8 @@ def eval_single_step(model, sampler, n_batch: int = 4) -> float:
         s0, u, ug, th, s_true, x = _torch(sampler.batch_pair())
         z = model.encode(s_true, u, th, x, ug)
         z_prev = torch.cat([z[:, :1], z[:, :-1]], dim=1)
-        z_next = model.predict(z_prev, u, th, x, ug)
+        z_next = model.predict(z_prev, u, th, x, ug,
+                               uh=model.u_hist_window(u))
         # 预测 s_{t+1}：用 z_prev[t+1] 与 z_next[t+1] 的解码差
         zp = z_prev[:, 1:]
         zn = z_next[:, 1:]
@@ -983,6 +990,10 @@ def main(argv=None) -> int:
     p2.add_argument("--event-head-delta", type=int, default=800,
                     help="事件头预测窗口（帧）")
     p2.add_argument("--event-head-weight", type=float, default=0.1)
+    p2.add_argument("--u-hist", type=int, default=0,
+                    help="预测器额外输入最近 k 步的 u 均值（0=关闭）")
+    p2.add_argument("--v-head", action="store_true",
+                    help="A：独立 V 头（残差修正 V，默认关闭）")
     p2.add_argument("--pinball-q", type=float, default=0.0,
                     help="分位数损失 q（0=关闭；0.85 把预测推向高分位）")
     p2.add_argument("--pinball-weight", type=float, default=0.1)
