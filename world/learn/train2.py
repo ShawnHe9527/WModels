@@ -148,6 +148,7 @@ def build_model(a, th_dim: int, cfg: dict | None = None):
                 slow_gate=bool(getattr(a, "slow_gate", False)),
                 fast_head=bool(getattr(a, "fast_head", False)),
                 event_out=bool(getattr(a, "event_out", False)),
+                event_out_factor=(7 if getattr(a, "event_out_factor", "cai") == "cai" else 8),
                 v_head=bool(getattr(a, "v_head", False)),
                 u_hist=int(getattr(a, "u_hist", 0)))
     n = m.n_params()
@@ -343,7 +344,8 @@ def cmd_t2(a) -> int:
     if getattr(a, "event_head", False) or getattr(a, "event_out", False):
         import torch.nn as _nn
         from tools.ca_event_metrics import _peaks as _find_peaks
-        _ci = tr.meta["factor_names"].index("cai")
+        _evk = getattr(a, "event_out_factor", "cai")
+        _ci = tr.meta["factor_names"].index(_evk)
         pk_times = []
         for _i in range(tr.N):
             _c = np.asarray(tr.s[_i, :, _ci, :]).max(axis=1)
@@ -430,8 +432,9 @@ def cmd_t2(a) -> int:
             if getattr(a, "event_out_thr", 0.0) > 0:
                 _ep = _ep * (_ep > a.event_out_thr).float()
             s_hat = s_hat.clone()
-            s_hat[:, :, CAI, :] = (s_hat[:, :, CAI, :]
-                                   + _ep.unsqueeze(-1) * _ea)
+            _evf = 7 if getattr(a, "event_out_factor", "cai") == "cai" else 8
+            s_hat[:, :, _evf, :] = (s_hat[:, :, _evf, :]
+                                    + _ep.unsqueeze(-1) * _ea)
         # ---- ① 事件加权损失 ----
         #
         # 实测 98.6% 的帧是静息的，事件帧误差虽大 2.6 倍，但对 MSE 只贡献 3.7%
@@ -562,7 +565,7 @@ def cmd_t2(a) -> int:
                 if not _ins.any():
                     continue
                 _lab[_b] = torch.from_numpy(_ins.astype(np.float32))
-                _cai_b = s_true[_b, :, CAI, :]
+                _cai_b = s_true[_b, :, _evf, :]
                 _rise = torch.clamp(_cai_b - torch.cat(
                     [_cai_b[:1], _cai_b[:-1]]), min=0)
                 _amp[_b] = _rise * torch.from_numpy(_ins.astype(np.float32)).unsqueeze(-1)
@@ -983,6 +986,8 @@ def main(argv=None) -> int:
     p2.add_argument("--event-out", action="store_true",
                     help="显式事件输出：cai 上 spike-and-slab 注入（默认关闭）")
     p2.add_argument("--event-out-weight", type=float, default=0.1)
+    p2.add_argument("--event-out-factor", type=str, default="cai",
+                    choices=["cai", "V"], help="事件输出注入的因子")
     p2.add_argument("--event-out-thr", type=float, default=0.0,
                     help=">0 时只在 p>thr 的帧注入（减少对平滑基底的干扰）")
     p2.add_argument("--event-head", action="store_true",

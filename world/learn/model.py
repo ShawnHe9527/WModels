@@ -248,7 +248,8 @@ class WorldModel(nn.Module):
                  fast_head: bool = False,
                  event_out: bool = False,
                  v_head: bool = False,
-                 u_hist: int = 0):
+                 u_hist: int = 0,
+                 event_out_factor: int = 7):
         super().__init__()
         self.d_z = d_z
         self.n_factors = n_factors
@@ -272,7 +273,7 @@ class WorldModel(nn.Module):
             nn.init.zeros_(self.vh[-1].bias)
         self.v_idx = 8                     # V 的因子下标（协议固定）
         self.event_out = bool(event_out)
-        self.event_f = 7                       # cai 的因子下标（协议固定）
+        self.event_f = int(event_out_factor)    # 注入的因子（7=cai, 8=V）
         if self.event_out:
             # 显式事件输出：cai 上的 spike-and-slab（p × amp 叠加）
             self.event_head = nn.Sequential(
@@ -428,9 +429,10 @@ def build(d_z: int = 8, hidden: int = 128, n_layers: int = 2,
           u_in_x: bool = True, n_glob: int = 0,
           slow_gate: bool = False, fast_head: bool = False,
           event_out: bool = False, v_head: bool = False,
-          u_hist: int = 0) -> WorldModel:
+          u_hist: int = 0, event_out_factor: int = 7) -> WorldModel:
     return WorldModel(n_factors, u_dim, th_dim, d_z, hidden, n_layers,
                       pred_attn=pred_attn, n_heads=n_heads,
                       u_in_x=u_in_x, n_glob=n_glob, slow_gate=slow_gate,
                       fast_head=fast_head, event_out=event_out,
-                      v_head=v_head, u_hist=u_hist)
+                      v_head=v_head, u_hist=u_hist,
+                      event_out_factor=event_out_factor)
