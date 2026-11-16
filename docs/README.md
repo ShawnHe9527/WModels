@@ -8,6 +8,8 @@
 | [`MODEL_FACTS.md`](MODEL_FACTS.md) | NEURON 模型几何、通道、突触、单位等实测事实 | ✅ 引用数字前先查 |
 | [`COMPARE_Yao2026.md`](COMPARE_Yao2026.md) | 与 Yao et al. 2026 的注意力/树突整合对照 | 📎 文献参考 |
 | [`L5PC_exp_使用手册.md`](L5PC_exp_使用手册.md) | 官方 `L5PC_exp.py` 的使用说明 | 📦 资产参考 |
+| [`EXPERIMENTS.md`](EXPERIMENTS.md) | 实验索引：脚本/权重/结果/判定（归档） | ✅ 2026-11-16 |
+| [`EVAL_STANDARD.md`](EVAL_STANDARD.md) | 多指标评测标准（采纳规则） | ✅ 2026-11-13 |
 | [`WM_PLAN.md`](WM_PLAN.md) | **唯一当前计划**（目标/阶段/优先级/已关闭项/判据/时间表/Stage 2–3） | ✅ 2026-11-11 修订 |
 | [`PLAN_NEW_SETTING.md`](PLAN_NEW_SETTING.md) | 换问题设定详细方案（C2 事件密集 / B2 点过程 / C1 隐藏状态 / A2 输入预览） | ✅ WM_PLAN 附录 |
 | [`ROADMAP.md`](ROADMAP.md) | 长期研究方向；§0/§2/§3 的旧优先级已被 WM_PLAN 取代 | 📎 方向参考 |
