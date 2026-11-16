@@ -674,6 +674,12 @@ def cmd_t2(a) -> int:
                     anc_cl_sum += float(_a)
                     anc_cl_n += 1
                 sc, zc = sc_next, zc_next
+                if (a.cl_reanchor > 0 and j % a.cl_reanchor == 0 and j < m):
+                    sc = s_c[:, j]
+                    with torch.no_grad():
+                        zc = model.encode(sc.unsqueeze(1),
+                                          u_c[:, j].unsqueeze(1), th_c, x,
+                                          ug_c[:, j].unsqueeze(1)).squeeze(1)
                 if a.cl_chunk > 0 and j % a.cl_chunk == 0 and j < m:
                     sc = sc.detach()
                     zc = zc.detach()
@@ -954,6 +960,8 @@ def main(argv=None) -> int:
     p2.add_argument("--cl-steps", type=int, default=10)
     p2.add_argument("--cl-horizon", type=int, default=0,
                     help="闭环训练视界（>0 时用独立长轨迹采样器；课程升到该值）")
+    p2.add_argument("--cl-reanchor", type=int, default=0,
+                    help="M1：闭环每 N 步把状态重置为真值（0=关闭）")
     p2.add_argument("--cl-chunk", type=int, default=0,
                     help="TBPTT：每 N 步 detach 一次（0=不截断）")
     p2.add_argument("--cl-lags", type=str, default="",
