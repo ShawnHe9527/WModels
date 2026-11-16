@@ -1,0 +1,5 @@
+section,nseg,L_um,diam_um,parent,children
+apic[50],3,61.927,1.8,apic[36],apic[60];apic[51]
+apic[51],11,215.48,1.29,apic[50],apic[53];apic[52]
+apic[52],5,113.916,0.482,apic[51],
+apic[53],9,190.289,1.03,apic[51],apic[57];apic[54]

@@ -1,0 +1,3 @@
+condition,rho,n_e_total,n_e_per_comp,n_shared_per_comp,n_indep_per_comp,n_i_total,vmax_mV,vmin_mV,vmean_mV,up_frac,cai_span_log10,cai_max_log10,target_spikes
+A_independent,0.0,1320,120,0,120,440,-51.1987,-75.7802,-64.3508,0.0000,0.0576,-3.9558,0
+B_partially_synchronized,0.6,1320,120,72,48,440,16.3302,-75.7802,-60.7834,0.0960,1.0180,-2.9954,11

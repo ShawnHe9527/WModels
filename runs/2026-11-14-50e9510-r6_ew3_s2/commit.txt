@@ -1,0 +1,40 @@
+git_head: 50e9510836f2cc5c8c519f2901843e1e3733bf70
+--- git status --porcelain ---
+ M docs/PLAN_NEW_SETTING.md
+ M docs/README.md
+ M docs/ROADMAP.md
+ M runs/2026-11-12-night-e01/night.log
+?? figs/
+?? runs/2026-11-08-93475fa-r6_dz32/
+?? runs/2026-11-08-93475fa-t1v4_dz32/
+?? runs/2026-11-11-17d3aae-r6_pinball2/
+?? runs/2026-11-11-9533aed-r6_pinball2_s2/
+?? runs/2026-11-11-errdecomp/bias.json
+?? runs/2026-11-11-errdecomp/bias_pinball.json
+?? runs/2026-11-11-night-pinball2/
+?? runs/2026-11-12-0189d6b-r6_e1_s2/
+?? runs/2026-11-12-44ecc6d-r6_vhead_s2/
+?? runs/2026-11-12-5f86707-r6_e1/
+?? runs/2026-11-12-a22f10e-r6_vhead/
+?? runs/2026-11-12-a7e551a-r6_vhead/
+?? runs/2026-11-12-night-e01/eval_E1.json
+?? runs/2026-11-12-night-e1s2/
+?? runs/2026-11-12-night-vhead/
+?? runs/2026-11-12-night-vhs2/
+?? runs/2026-11-12-pred-figs/
+?? runs/2026-11-13-bb0f7c7-r6_eot_s2/
+?? runs/2026-11-13-bb0f7c7-r6_ew3/
+?? runs/2026-11-13-night-eot/
+?? runs/2026-11-13-night-ew3/
+?? runs/2026-11-13-reeval/
+?? runs/2026-11-14-50e9510-r6_ew3_s2/
+?? tools/fig_predictions.py
+?? tools/night_e01_2026_11_12.sh
+?? tools/regime_bias.py
+?? tools/t1_bias.py
+?? tools/t1_bias2.py
+--- created 2026-11-14T03:44:59+08:00 ---
+a6000middle
+/dev/nvme0n1p5  568G  528G   11G  98% /home
+               total        used        free      shared  buff/cache   available
+Mem:           502Gi        23Gi        44Gi       1.8Gi       434Gi       473Gi

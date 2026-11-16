@@ -1,0 +1,1700 @@
+                                    Article                                                                                                       https://doi.org/10.1038/s41467-023-41553-7
+
+
+                                    A GPU-based computational framework that
+                                    bridges neuron simulation and artiﬁcial
+                                    intelligence
+                                    Received: 30 June 2022                                Yichen Zhang 1,8, Gan He 1,8, Lei Ma 1,2,8, Xiaofei Liu1,3, J. J. Johannes Hjorth4,
+                                                                                          Alexander Kozlov4,5, Yutao He1, Shenjian Zhang1,
+                                    Accepted: 8 September 2023
+                                                                                          Jeanette Hellgren Kotaleski 4,5, Yonghong Tian 1,6, Sten Grillner 5,
+                                                                                          Kai Du 7 & Tiejun Huang 1,2,7
+
+                                        Check for updates
+                  1234567890():,;
+1234567890():,;
+
+
+
+
+                                                                                          Biophysically detailed multi-compartment models are powerful tools to
+                                                                                          explore computational principles of the brain and also serve as a theoretical
+                                                                                          framework to generate algorithms for artiﬁcial intelligence (AI) systems.
+                                                                                          However, the expensive computational cost severely limits the applications in
+                                                                                          both the neuroscience and AI ﬁelds. The major bottleneck during simulating
+                                                                                          detailed compartment models is the ability of a simulator to solve large sys-
+                                                                                          tems of linear equations. Here, we present a novel Dendritic Hierarchical
+                                                                                          Scheduling (DHS) method to markedly accelerate such a process. We theo-
+                                                                                          retically prove that the DHS implementation is computationally optimal and
+                                                                                          accurate. This GPU-based method performs with 2-3 orders of magnitude
+                                                                                          higher speed than that of the classic serial Hines method in the conventional
+                                                                                          CPU platform. We build a DeepDendrite framework, which integrates the DHS
+                                                                                          method and the GPU computing engine of the NEURON simulator and
+                                                                                          demonstrate applications of DeepDendrite in neuroscience tasks. We investi-
+                                                                                          gate how spatial patterns of spine inputs affect neuronal excitability in a
+                                                                                          detailed human pyramidal neuron model with 25,000 spines. Furthermore, we
+                                                                                          provide a brief discussion on the potential of DeepDendrite for AI, speciﬁcally
+                                                                                          highlighting its ability to enable the efﬁcient training of biophysically detailed
+                                                                                          models in typical image classiﬁcation tasks.
+
+
+                                    Deciphering the coding and computational principles of neurons is                computation, especially in neural network analysis. In recent years,
+                                    essential to neuroscience. Mammalian brains are composed of more                 modern artiﬁcial intelligence (AI) has utilized this principle and
+                                    than thousands of different types of neurons with unique morpholo-               developed powerful tools, such as artiﬁcial neural networks (ANN)2.
+                                    gical and biophysical properties. Even though it is no longer con-               However, in addition to comprehensive computations at the single
+                                    ceptually true, the “point-neuron” doctrine1, in which neurons were              neuron level, subcellular compartments, such as neuronal dendrites,
+                                    regarded as simple summing units, is still widely applied in neural              can also carry out nonlinear operations as independent computational
+
+
+                                    1
+                                     National Key Laboratory for Multimedia Information Processing, School of Computer Science, Peking University, Beijing 100871, China. 2Beijing Academy of
+                                    Artiﬁcial Intelligence (BAAI), Beijing 100084, China. 3School of Information Science and Engineering, Yunnan University, Kunming 650500, China. 4Science
+                                    for Life Laboratory, School of Electrical Engineering and Computer Science, Royal Institute of Technology KTH, Stockholm SE-10044, Sweden. 5Department
+                                    of Neuroscience, Karolinska Institute, Stockholm SE-17165, Sweden. 6School of Electrical and Computer Engineering, Shenzhen Graduate School, Peking
+                                    University, Shenzhen 518055, China. 7Institute for Artiﬁcial Intelligence, Peking University, Beijing 100871, China. 8These authors contributed equally: Yichen
+                                    Zhang, Gan He, and Lei Ma.        e-mail: kai.du@pku.edu.cn
+
+
+                                    Nature Communications | (2023)14:5798                                                                                                                        1
+Article                                                                                               https://doi.org/10.1038/s41467-023-41553-7
+
+
+units3–7. Furthermore, dendritic spines, small protrusions that densely     combinatorial optimization33 and parallel computing theory34. We
+cover dendrites in spiny neurons, can compartmentalize synaptic             demonstrate that our algorithm provides optimal scheduling without
+signals, allowing them to be separated from their parent dendrites ex       any loss of precision. Furthermore, we have optimized DHS for the
+vivo and in vivo8–11.                                                       currently most advanced GPU chip by leveraging the GPU memory
+      Simulations using biologically detailed neurons provide a theo-       hierarchy and memory accessing mechanisms. Together, DHS can
+retical framework for linking biological details to computational           speed up computation 60-1,500 times (Supplementary Table 1) com-
+principles. The core of the biophysically detailed multi-compartment        pared to the classic simulator NEURON25 while maintaining identical
+model framework12,13 allows us to model neurons with realistic den-         accuracy.
+dritic morphologies, intrinsic ionic conductance, and extrinsic synap-            To enable detailed dendritic simulations for use in AI, we next
+tic inputs. The backbone of the detailed multi-compartment model,           establish the DeepDendrite framework by integrating the DHS-
+i.e., dendrites, is built upon the classical Cable theory12, which models   embedded CoreNEURON (an optimized compute engine for NEU-
+the biophysical membrane properties of dendrites as passive cables,         RON) platform35 as the simulation engine and two auxiliary modules (I/
+providing a mathematical description of how electronic signals invade       O module and learning module) supporting dendritic learning algo-
+and propagate throughout complex neuronal processes. By incor-              rithms during simulations. DeepDendrite runs on the GPU hardware
+porating Cable theory with active biophysical mechanisms such as ion        platform, supporting both regular simulation tasks in neuroscience
+channels, excitatory and inhibitory synaptic currents, etc., a detailed     and learning tasks in AI.
+multi-compartment model can achieve cellular and subcellular neu-                 Last but not least, we also present several applications using
+ronal computations beyond experimental limitations4,7.                      DeepDendrite, targeting a few critical challenges in neuroscience and
+      In addition to its profound impact on neuroscience, biologically      AI: (1) We demonstrate how spatial patterns of dendritic spine inputs
+detailed neuron models recently were utilized to bridge the gap             affect neuronal activities with neurons containing spines throughout
+between neuronal structural and biophysical details and AI. The pre-        the dendritic trees (full-spine models). DeepDendrite enables us to
+vailing technique in the modern AI ﬁeld is ANNs consisting of point         explore neuronal computation in a simulated human pyramidal neu-
+neurons, an analog to biological neural networks. Although ANNs with        ron model with ~25,000 dendritic spines. (2) In the discussion we also
+“backpropagation-of-error” (backprop) algorithm achieve remarkable          consider the potential of DeepDendrite in the context of AI, speciﬁ-
+performance in specialized applications, even beating top human             cally, in creating ANNs with morphologically detailed human pyr-
+professional players in the games of Go and chess14,15, the human brain     amidal neurons. Our ﬁndings suggest that DeepDendrite has the
+still outperforms ANNs in domains that involve more dynamic and             potential to drastically reduce the training duration, thus making
+noisy environments16,17. Recent theoretical studies suggest that den-       detailed network models more feasible for data-driven tasks.
+dritic integration is crucial in generating efﬁcient learning algorithms          All source code for DeepDendrite, the full-spine models and the
+that potentially exceed backprop in parallel information                    detailed dendritic network model are publicly available online (see
+processing18–20. Furthermore, a single detailed multi-compartment           Code Availability). Our open-source learning framework can be readily
+model can learn network-level nonlinear computations for point neu-         integrated with other dendritic learning rules, such as learning rules
+rons by adjusting only the synaptic strength21,22, demonstrating the full   for nonlinear (full-active) dendrites21, burst-dependent synaptic
+potential of the detailed models in building more powerful brain-like       plasticity20, and learning with spike prediction36. Overall, our study
+AI systems. Therefore, it is of high priority to expand paradigms in        provides a complete set of tools that have the potential to change the
+brain-like AI from single detailed neuron models to large-scale biolo-      current computational neuroscience community ecosystem. By
+gically detailed networks.                                                  leveraging the power of GPU computing, we envision that these tools
+      One long-standing challenge of the detailed simulation approach       will facilitate system-level explorations of computational principles of
+lies in its exceedingly high computational cost, which has severely         the brain’s ﬁne structures, as well as promote the interaction between
+limited its application to neuroscience and AI. The major bottleneck of     neuroscience and modern AI.
+the simulation is to solve linear equations based on the foundational
+theories of detailed modeling12,23,24. To improve efﬁciency, the classic    Results
+Hines method reduces the time complexity for solving equations from         Dendritic Hierarchical Scheduling (DHS) method
+O(n3) to O(n), which has been widely applied as the core algorithm in       Computing ionic currents and solving linear equations are two critical
+popular simulators such as NEURON25 and GENESIS26. However, this            phases when simulating biophysically detailed neurons, which are
+method uses a serial approach to process each compartment                   time-consuming and pose severe computational burdens. Fortunately,
+sequentially. When a simulation involves multiple biophysically             computing ionic currents of each compartment is a fully independent
+detailed dendrites with dendritic spines, the linear equation matrix        process so that it can be naturally parallelized on devices with massive
+(“Hines Matrix”) scales accordingly with an increasing number of            parallel-computing units like GPUs37. As a consequence, solving linear
+dendrites or spines (Fig. 1e), making Hines method no longer practical,     equations becomes the remaining bottleneck for the parallelization
+since it poses a very heavy burden on the entire simulation.                process (Fig. 1a–f).
+      During past decades, tremendous progress has been achieved to              To tackle this bottleneck, cellular-level parallel methods have
+speed up the Hines method by using parallel methods at the cellular         been developed, which accelerate single-cell computation by “split-
+level, which enables to parallelize the computation of different parts in   ting” a single cell into several compartments that can be computed in
+each cell27–32. However, current cellular-level parallel methods often      parallel27,28,38. However, such methods rely heavily on prior knowledge
+lack an efﬁcient parallelization strategy or lack sufﬁcient numerical       to generate practical strategies on how to split a single neuron into
+accuracy as compared to the original Hines method.                          compartments (Fig. 1g−i; Supplementary Fig. 1). Hence, it becomes less
+      Here, we develop a fully automatic, numerically accurate, and         efﬁcient for neurons with asymmetrical morphologies, e.g., pyramidal
+optimized simulation tool that can signiﬁcantly accelerate computa-         neurons and Purkinje neurons.
+tion efﬁciency and reduce computational cost. In addition, this simu-            We aim to develop a more efﬁcient and precise parallel method
+lation tool can be seamlessly adopted for establishing and testing          for the simulation of biologically detailed neural networks. First, we
+neural networks with biological details for machine learning and AI         establish the criteria for the accuracy of a cellular-level parallel
+applications. Critically, we formulate the parallel computation of the      method. Based on the theories in parallel computing34, we propose
+Hines method as a mathematical scheduling problem and generate a            three conditions to make sure a parallel method will yield identical
+Dendritic Hierarchical Scheduling (DHS) method based on                     solutions as the serial computing Hines method according to the data
+
+
+Nature Communications | (2023)14:5798                                                                                                             2
+Article                                                                                                                                                                                     https://doi.org/10.1038/s41467-023-41553-7
+
+
+      a                                          b                                   c                                                                                                                                d
+                                                         Initialize                                                                                                                                                                                   12       14
+
+                                                                                                                                                                                                                                    9        10       11       13
+
+                                                     Set up equations                                                                                                                                                                   7                  8
+
+                                                                                                                                                                                                                                                  6
+
+                                                     Solve equations
+                                                                                                                                                                                                                                                  5
+
+                                                                                                                                                                                                                                                  0
+                                                      Update states
+                                                                                                                                                                                                                                 1          2          3        4
+                                                                                                                                                                                                                                         :
+                                                                                                                                    G                                               v              i                                    Triangularize
+                                                            End
+                                                                                                                                                                                                                                        Back-substitute
+      e                                                                                                                                 f
+           Simplified model Pyramidal model             Pyramidal model with spines                                                                                                           Computation cost of Hines method
+                                                                                                                                                                              40 x10³
+                                                                                                                                                                                 36,218
+
+
+
+
+                                                                                                                                              Computation cost (# of steps)
+                                                                                                                                                                              30
+                                                                                                                                                                                            3,221
+
+
+
+
+                                                                                                                                                                                    ...
+                                       ......
+                                                                       ......
+                                   ..
+                                     ..
+                                      ......
+
+                                        ..
+
+
+
+
+                                                                                                                                                                              2.0
+                                          ..
+                                            ..
+
+
+
+
+             matrix size:
+               (8, 8)           matrix size:                                                                                                                                                                    1,413
+                                                                      ..
+
+
+
+
+                                (838, 838)
+                                                         ......
+
+
+                                                                        ..
+
+
+
+
+                                                                                                                                                                              1.0                                           838
+                                                                          ..
+
+
+
+
+                                                                                                                                                                                                                                             709
+                                                                            ..
+
+
+
+
+                                                                                                                                                                                                                                                       590
+                                                                              ..
+
+
+
+
+                                                                                                                                                                                                                                                                     268
+                                                                                                                                                                               0
+
+
+
+
+                                                                                                                                                                                                                               al
+                                                                                                                                                                                      in al
+
+
+
+
+                                                                                                                                                                                                                 A1
+                                                                                                                                                                                            je
+
+
+
+
+                                                                                                                                                                                                                                                           b
+
+
+                                                                                                                                                                                                                                                                      N
+                                                                                                                                                                                                                                             al
+                                                                                                                                                                                         es
+
+
+
+
+                                                                                                                                                                                                                            id
+
+
+
+
+                                                                                                                                                                                                                                                       A3
+                                                                                                                                                                                   sp id
+
+
+                                                                                                                                                                                         in
+
+
+
+
+                                                                                                                                                                                                                                                                    SP
+                                                                                                                                                                                                                                         itr
+                                                                                                                                                                                                                C
+
+                                                                                                                                                                                                                           m
+                                                                                                                                                                                ith am
+
+
+
+                                                                                                                                                                                      rk
+
+
+
+
+                                                                                                                                                                                                                                                      C
+                                                                                                                                                                                                                                        M
+                                                                                                                                                                                                                       ra
+                                                                                                                                                                                   Pu
+                                                                    matrix size:
+                                                                                                                                                                               w yr
+
+
+
+
+                                                                                                                                                                                                                      Py
+                                                                                                                                                                                 P
+
+
+                                                                  (36,218, 36,218)
+                                                                                                                                                                                                                    Neuron types
+      g                                                                         h                                                                                                              i
+
+                                                                                                                                 Cost of different methods                                                                     Run time of simulating 1 s
+
+                                                                                                                     40 x10³                                                                                    6.0 x10³
+                                                                                                                          36,218                                                                                        5,236.0
+                                                                                     Computation cost (# of steps)
+
+
+
+
+                                                                                                                     30                                                                                         4.5
+
+                                                                                                                                            23,262
+                                                                                                                                                                                                 Run time (s)
+
+
+
+
+                                                                                                                     20                                                                                         3.0
+
+                                                                                                                                                                                                                                                2,138.6
+
+                                                                                                                     10                                                                                         1.5
+
+
+                                                                                                                                                                                    1,135                                                                           164.2
+              Serial Hines    Branch based           Dendritic Hierarchical                                           0                                                                                          0
+                mehtod          parallelize              Scheduling                                                       Hines       Branch based                                  DHS                                p-Hines Branch based DHS
+
+Fig. 1 | Accelerate simulation of biophysically detailed neuron models. a A                                                    methods. Different parts of a neuron are assigned to multiple processing units in
+reconstructed layer-5 pyramidal neuron model and the mathematical formula used                                                 parallel methods (mid, right), shown with different colors. In the serial method
+with detailed neuron models. b Workﬂow when numerically simulating detailed                                                    (left), all compartments are computed with one unit. h Computational cost of three
+neuron models. The equation-solving phase is the bottleneck in the simulation. c An                                            methods in g when solving equations of a pyramidal model with spines. i Run time
+example of linear equations in the simulation. d Data dependency of the Hines                                                  of different methods on solving equations for 500 pyramidal models with spines.
+method when solving linear equations in c. e The size of the Hines matrix scales                                               The run time indicates the time consumption of 1 s simulation (solving the equation
+with model complexity. The number of linear equations system to be solved                                                      40,000 times with a time step of 0.025 ms). p-Hines parallel method in Cor-
+undergoes a signiﬁcant increase when models are growing more detailed.                                                         eNEURON (on GPU), Branch based branch-based parallel method (on GPU), DHS
+f Computational cost (steps taken in the equation solving phase) of the serial Hines                                           Dendritic hierarchical scheduling method (on GPU).
+method on different types of neuron models. g Illustration of different solving
+
+
+
+
+Nature Communications | (2023)14:5798                                                                                                                                                                                                                                       3
+Article                                                                                                                                                                                                                                  https://doi.org/10.1038/s41467-023-41553-7
+
+
+      a                                                              b                                                                                                                                              c
+                                  Start                                                                                                                                                                                                                                                                         Proximal
+                                                                                                              12       14                                                                              Depth
+                                                                                                                                                       0                                                   0
+                                                                             9                       10       11       13
+                  Analyze the topology
+                                                                                                                                      1       2        3            4        5                             1
+                                                                                       7                           8
+
+                                                                                                                                                                             6                             2
+                 Get all candidate nodes                                                                  6
+
+                                                                                                                                                                7                      8                   3
+                                                                                                          5
+                      Select k deepest                                                                                                                     9            10        11       13              4
+                        candidates                                                                        0
+
+                                                                             1                       2        3        4                                                          12       14              5                                                                                                    Distal
+                                  End
+
+
+      d
+                          0                                          0                                                                0                                                        0                                              0                                            0
+
+             1        2   3       4        5               1     2   3       4               5                         1        2     3       4        5                      1        2       3       4        5                    1   2    3        4       5               1       2   3       4        5
+
+                                           6                                                 6                                                         6                                                        6                                              6                                            6
+
+                                  7              8                           7                            8                                   7                 8                                      7                8                             7              8                             7                 8
+
+                              9       10       11 13                     9       10                  11 13                                9       10       11 13                                   9       10       11 13                         9       10       11 13                       9       10       11 13
+
+                                               12 14                                                 12 14                                                 12 14                                                    12 14                                          12 14                                        12 14
+
+                                                                                                      Candidates                                       Selected candidates                                              Processed nodes
+
+
+       e                                                                         f
+                                                                                                                                    Pyramidal                                                                       Purkinje                                                           CA3b
+                                                                                                     1.0                                                                           1.0                                                                             1.0
+                 9        10           12            14        step 1                                0.8                                                                           0.8                                                                             0.8
+                                                                                                     0.6                                                                           0.6                                                                             0.6
+                 1        7            11            13        step 2                                0.4                                                                           0.4                                                                             0.4
+                                                                                                     0.2                                                                           0.2                                                                             0.2
+                                                                                     Relative cost
+
+
+
+
+                 2        3                4         8         step 3
+                                                                                                          0                                                                                0                                                                        0
+                                                                                                                   1        2         4           8        16           32                         1            2       4        8       16   32                           1       2       4           8        16       32
+                 6                                             step 4                                                                 CA1                                                                               Mitral                                                         SPN
+                                                                                                     1.0                                                                           1.0                                                                             1.0
+                 5                                             step 5                                0.8                                                                           0.8                                                                             0.8
+                                                                                                     0.6                                                                           0.6                                                                             0.6
+                 t1       t2           t3            t4                                              0.4                                                                           0.4                                                                             0.4
+                                                                                                     0.2                                                                           0.2                                                                             0.2
+                                                                                                          0                                                                                0                                                                        0
+                                                                                                                   1        2         4           8        16       32                                 1        2   4    8 16                     32                       1       2       4           8        16       32
+            Former steps                                  Latter steps
+                                                                                                                                                                                                                Threads number
+
+Fig. 2 | Dendritic Hierarchical Scheduling (DHS) method signiﬁcantly reduces                                                                                                 threads. Candidates: nodes that can be processed. Selected candidates: nodes that
+the computational cost, i.e., computational steps in solving equations. a DHS                                                                                                are picked by DHS, i.e., the k deepest candidates. Processed nodes: nodes that have
+work ﬂow. DHS processes k deepest candidate nodes each iteration. b Illustration                                                                                             been processed before. e Parallelization strategy obtained by DHS after the process
+of calculating node depth of a compartmental model. The model is ﬁrst converted                                                                                              in d. Each node is assigned to one of the four parallel threads. DHS reduces the
+to a tree structure then the depth of each node is computed. Colors indicate                                                                                                 steps of serial node processing from 14 to 5 by distributing nodes to multiple
+different depth values. c Topology analysis on different neuron models. Six neu-                                                                                             threads. f Relative cost, i.e., the proportion of the computational cost of DHS to that
+rons with distinct morphologies are shown here. For each model, the soma is                                                                                                  of the serial Hines method, when applying DHS with different numbers of threads
+selected as the root of the tree so the depth of the node increases from the soma (0)                                                                                        on different types of models.
+to the distal dendrites. d Illustration of performing DHS on the model in b with four
+
+
+
+
+dependency in the Hines method (see Methods). Then to theoretically                                                                                                          to ﬁnd a strategy with the minimum number of steps for the entire
+evaluate the run time, i.e., efﬁciency, of the serial and parallel com-                                                                                                      procedure.
+puting methods, we introduce and formulate the concept of compu-                                                                                                                  To generate an optimal partition, we propose a method called
+tational cost as the number of steps a method takes in solving                                                                                                               Dendritic Hierarchical Scheduling (DHS) (theoretical proof is pre-
+equations (see Methods).                                                                                                                                                     sented in the Methods). The key idea of DHS is to prioritize deep nodes
+     Based on the simulation accuracy and computational cost, we                                                                                                             (Fig. 2a), which results in a hierarchical schedule order. The DHS
+formulate the parallelization problem as a mathematical scheduling                                                                                                           method includes two steps: analyzing dendritic topology and ﬁnding
+problem (see Methods). In simple terms, we view a single neuron as a                                                                                                         the best partition: (1) Given a detailed model, we ﬁrst obtain its cor-
+tree with many nodes (compartments). For k parallel threads, we can                                                                                                          responding dependency tree and calculate the depth of each node (the
+compute at most k nodes at each step, but we need to ensure a node is                                                                                                        depth of a node is the number of its ancestor nodes) on the tree
+computed only if all its children nodes have been processed; our goal is                                                                                                     (Fig. 2b, c). (2) After topology analysis, we search the candidates and
+
+
+Nature Communications | (2023)14:5798                                                                                                                                                                                                                                                                                         4
+Article                                                                                                   https://doi.org/10.1038/s41467-023-41553-7
+
+
+pick at most k deepest candidate nodes (a node is a candidate only if all       GPU method in CoreNEURON, DHS-4 and DHS-16 can speed up about 5
+its children nodes have been processed). This procedure repeats until           and 15 times, respectively (Fig. 4a). Moreover, compared to the con-
+all nodes are processed (Fig. 2d).                                              ventional serial Hines method in NEURON running with a single-thread
+      Take a simpliﬁed model with 15 compartments as an example,                of CPU, DHS speeds up the simulation by 2-3 orders of magnitude
+using the serial computing Hines method, it takes 14 steps to process           (Supplementary Fig. 3), while retaining the identical numerical accu-
+all nodes, while using DHS with four parallel units can partition its           racy in the presence of dense spines (Supplementary Figs. 4 and 8),
+nodes into ﬁve subsets (Fig. 2d): {{9,10,12,14}, {1,7,11,13}, {2,3,4,8}, {6},   active dendrites (Supplementary Fig. 7) and different segmentation
+{5}}. Because nodes in the same subset can be processed in parallel, it         strategies (Supplementary Fig. 7).
+takes only ﬁve steps to process all nodes using DHS (Fig. 2e).
+      Next, we apply the DHS method on six representative detailed              DHS creates cell-type-speciﬁc optimal partitioning
+neuron models (selected from ModelDB39) with different numbers of               To gain insights into the working mechanism of the DHS method, we
+threads (Fig. 2f):, including cortical and hippocampal pyramidal                visualized the partitioning process by mapping compartments to each
+neurons40–42, cerebellar Purkinje neurons43, striatal projection neurons        thread (every color presents a single thread in Fig. 4b, c). The visuali-
+(SPN44), and olfactory bulb mitral cells45, covering the major principal        zation shows that a single thread frequently switches among different
+neurons in sensory, cortical and subcortical areas. We then measured            branches (Fig. 4b, c). Interestingly, DHS generates aligned partitions in
+the computational cost. The relative computational cost here is                 morphologically symmetric neurons such as the striatal projection
+deﬁned by the proportion of the computational cost of DHS to that of            neuron (SPN) and the Mitral cell (Fig. 4b, c). By contrast, it generates
+the serial Hines method. The computational cost, i.e., the number of            fragmented partitions of morphologically asymmetric neurons like the
+steps taken in solving equations, drops dramatically with increasing            pyramidal neurons and Purkinje cell (Fig. 4b, c), indicating that DHS
+thread numbers. For example, with 16 threads, the computational cost            splits the neural tree at individual compartment scale (i.e., tree node)
+of DHS is 7%-10% as compared to the serial Hines method. Intriguingly,          rather than branch scale. This cell-type-speciﬁc ﬁne-grained partition
+the DHS method reaches the lower bounds of their computational cost             enables DHS to fully exploit all available threads.
+for presented neurons when given 16 or even 8 parallel threads                       In summary, DHS and memory boosting generate a theoretically
+(Fig. 2f), suggesting adding more threads does not improve perfor-              proven optimal solution for solving linear equations in parallel with
+mance further because of the dependencies between compartments.                 unprecedented efﬁciency. Using this principle, we built the open-
+      Together, we generate a DHS method that enables automated                 access DeepDendrite platform, which can be utilized by neuroscien-
+analysis of the dendritic topology and optimal partition for parallel           tists to implement models without any speciﬁc GPU programming
+computing. It is worth noting that DHS ﬁnds the optimal partition               knowledge. Below, we demonstrate how we can utilize DeepDendrite
+before the simulation starts, and no extra computation is needed to             in neuroscience tasks. We also discuss the potential of the DeepDen-
+solve equations.                                                                drite framework for AI-related tasks in the Discussion section.
+
+Speeding up DHS by GPU memory boosting                                          DHS enables spine-level modelling
+DHS computes each neuron with multiple threads, which consumes a                As dendritic spines receive most of the excitatory input to cortical and
+vast amount of threads when running neural network simulations.                 hippocampal pyramidal neurons, striatal projection neurons, etc.,
+Graphics Processing Units (GPUs) consist of massive processing units            their morphologies and plasticity are crucial for regulating neuronal
+(i.e., streaming processors, SPs, Fig. 3a, b) for parallel computing46. In      excitability10,48–51. However, spines are too small ( ~ 1 μm length) to be
+theory, many SPs on the GPU should support efﬁcient simulation for              directly measured experimentally with regard to voltage-dependent
+large-scale neural networks (Fig. 3c). However, we consistently                 processes. Thus, theoretical work is critical for the full understanding
+observed that the efﬁciency of DHS signiﬁcantly decreased when the              of the spine computations.
+network size grew, which might result from scattered data storage or                 We can model a single spine with two compartments: the spine
+extra memory access caused by loading and writing intermediate                  head where synapses are located and the spine neck that links the spine
+results (Fig. 3d, left).                                                        head to dendrites52. The theory predicts that the very thin spine neck
+       We solve this problem by GPU memory boosting, a method to                (0.1-0.5 um in diameter) electronically isolates the spine head from its
+increase memory throughput by leveraging GPU’s memory hierarchy                 parent dendrite, thus compartmentalizing the signals generated at the
+and access mechanism. Based on the memory loading mechanism of                  spine head53. However, the detailed model with fully distributed spines
+GPU, successive threads loading aligned and successively-stored data            on dendrites (“full-spine model”) is computationally very expensive. A
+lead to a high memory throughput compared to accessing scatter-                 common compromising solution is to modify the capacitance and
+stored data, which reduces memory throughput46,47. To achieve high              resistance of the membrane by a Fspine factor54, instead of modeling all
+throughput, we ﬁrst align the computing orders of nodes and rear-               spines explicitly. Here, the Fspine factor aims at approximating the spine
+range threads according to the number of nodes on them. Then we                 effect on the biophysical properties of the cell membrane54.
+permute data storage in global memory, consistent with computing                     Inspired by the previous work of Eyal et al. 51, we investigated how
+orders, i.e., nodes that are processed at the same step are stored              different spatial patterns of excitatory inputs formed on dendritic
+successively in global memory. Moreover, we use GPU registers to                spines shape neuronal activities in a human pyramidal neuron model
+store intermediate results, further strengthening memory throughput.            with explicitly modeled spines (Fig. 5a). Noticeably, Eyal et al.
+The example shows that memory boosting takes only two memory                    employed the Fspine factor to incorporate spines into dendrites while
+transactions to load eight request data (Fig. 3d, right). Furthermore,          only a few activated spines were explicitly attached to dendrites (“few-
+experiments on multiple numbers of pyramidal neurons with spines                spine model” in Fig. 5a). The value of Fspine in their model was com-
+and the typical neuron models (Fig. 3e, f; Supplementary Fig. 2) show           puted from the dendritic area and spine area in the reconstructed data.
+that memory boosting achieves a 1.2-3.8 times speedup as compared               Accordingly, we calculated the spine density from their reconstructed
+to the naïve DHS.                                                               data to make our full-spine model more consistent with Eyal’s few-
+       To comprehensively test the performance of DHS with GPU                  spine model. With the spine density set to 1.3 μm-1, the pyramidal
+memory boosting, we select six typical neuron models and evaluate               neuron model contained about 25,000 spines without altering the
+the run time of solving cable equations on massive numbers of each              model’s original morphological and biophysical properties. Further,
+model (Fig. 4). We examined DHS with four threads (DHS-4) and six-              we repeated the previous experiment protocols with both full-spine
+teen threads (DHS-16) for each neuron, respectively. Compared to the            and few-spine models. We use the same synaptic input as in Eyal’s work
+
+
+Nature Communications | (2023)14:5798                                                                                                                   5
+Article                                                                                                                                                                                                              https://doi.org/10.1038/s41467-023-41553-7
+
+
+      a                                                                                                                                      b                                                            c
+                                                                                                                                                   SM                                                                      0
+                                  GPU                                                                                                                                                                                                                                    9    10   12   14
+                                   GPC                          GPC                          GPC                                                        REG                 REG
+                                                                                                                                                                                                                1     2    3        4        5                           1    7    11   13
+
+                                                                                                                                                                                                                                             6                           2    3    4    8
+                                                                                                                                                        SPG                 SPG                                                    7                   8                 6
+
+                                                                      L2 cache                                                                                                                                                 9        10        11       13            5
+                                   GPC                          GPC                          GPC
+                                                                                                                                                                                                                                                  12       14        t1       t2   t3   t4
+                                                                                                                                                        REG                 REG
+                                                                                                                                                                                                                                                  Neuron 1
+
+
+                                                                                                                                                        SPG                 SPG
+                                                                                                                                                                                                                          15                                         16       23   24   25
+                                                                                                                                                                                                               16    17            18        19                      17       18   21   22
+
+                                                                                                                                                         L1 / shared memory                                                                  20                      20
+                                                                   Global memory
+                                                                                                                                                                                                                                   21                  22            19
+                                                                                                                                                         Registers
+                                                                                                                                                         Streaming Processor Group                                                 23             24        25           t5   t6   t7   t8
+                                                                                                                                                         Streaming Processor
+                                                                                                                                                                                                                                                  Neuron 2
+          Fast                                                                                                                     Slow
+
+      d                                                                                                                                                                              e
+                                                                                                                                                                                                                                                 Run time
+                                                                                                                                                                                                         20
+                                  9       10      12       14                                                                  9    16     10      12    14    23      24   25
+
+                                  1        7       11      13         16        23      24       25                            1    17      7      11    13    18      21   22
+                                                                                                                                                                                                         15
+
+
+
+
+                                                                                                                                                                                         Run time (ms)
+                                  2        3       4        8         17        18      21       22                            2    20      3       4     8
+
+                                  6                                   20                                                       6    19                                                                   10
+
+                                  5                                   19                                                       5
+                                                                                                                                                                                                          5
+
+
+                                                      ...0,1,2,3,4,5,6,7,8...                                                            ...5,6,19,2,20,3,4,8,1...
+                                                                                                                                                                                                          0
+                                                                                                                                                                                                               500        1,000           1,500                 2,000    2,500     3,000
+                                                      Original data storage                                                               Boosting data storage                                                                        Naive DHS                    Mem. boost DHS
+                                                                                                                                                                                                                                                   Cell number
+
+                                                                SPG                                                                                     REG                          f
+                                                       ......         ......                                                                                                                                                   Speed up of memory boosting
+                                                                                                                                                Intermediate results                                     2.1
+                                                           L1 cache
+          1,7,11,13,16,23,24,25
+
+
+
+
+                                      ......                    ......                  ......
+                                                                                                      9,16,19,12,14,23,24,25
+
+
+
+
+                                                                                                                                                        SPG                                              2.0
+                                                           L2 cache
+                                                                                                                                                                                         Speed up (1x)
+
+
+
+
+                                                                                                                                                    L1 cache                                             1.9
+                                           0,1,2,3                       inter.
+                                                                               ......
+
+
+
+
+                                                                                                                                                    L2 cache
+                                                  ......
+
+
+
+
+                                                                                                                                                                                                         1.8
+
+                                                 24,25,26,27                       inter.
+                                                                                                                                    9,16,19,12                 14,23,24,25                               1.7
+                                               1 ...... 7                  ......
+                                                       Global memory                                                                             Global memory                                           1.6
+                                                                                                                                                                                                               500        1,000              1,500               2,000        2,500     3,000
+                                                                           Data request                                                    Data flow                                                                                              Cell number
+
+Fig. 3 | GPU memory boosting further accelerates DHS. a GPU architecture and                                                                                         Processors send a data request to load data for each thread from global memory.
+its memory hierarchy. Each GPU contains massive processing units (stream pro-                                                                                        Without memory boosting (left), it takes seven transactions to load all request data
+cessors). Different types of memory have different throughput. b Architecture of                                                                                     and some extra transactions for intermediate results. With memory boosting
+Streaming Multiprocessors (SMs). Each SM contains multiple streaming pro-                                                                                            (right), it takes only two transactions to load all request data, registers are used for
+cessors, registers, and L1 cache. c Applying DHS on two neurons, each with four                                                                                      intermediate results, which further improve memory throughput. e Run time of
+threads. During simulation, each thread executes on one stream processor.                                                                                            DHS (32 threads each cell) with and without memory boosting on multiple layer 5
+d Memory optimization strategy on GPU. Top panel, thread assignment and data                                                                                         pyramidal models with spines. f Speed up of memory boosting on multiple layer 5
+storage of DHS, before (left) and after (right) memory boosting. Bottom, an                                                                                          pyramidal models with spines. Memory boosting brings 1.6-2 times speedup.
+example of a single step in triangularization when simulating two neurons in d.
+
+
+
+but attach extra background noise to each sample. By comparing the                                                                                                   nonlinear in the full-spine model (the solid blue line in Fig. 5d) than in
+somatic traces (Fig. 5b, c) and spike probability (Fig. 5d) in full-spine                                                                                            the few-spine model (the dashed blue line in Fig. 5d). These results
+and few-spine models, we found that the full-spine model is much                                                                                                     indicate that the conventional F-factor method may underestimate the
+leakier than the few-spine model. In addition, the spike probability                                                                                                 impact of dense spine on the computations of dendritic excitability
+triggered by the activation of clustered spines appeared to be more                                                                                                  and nonlinearity.
+
+
+Nature Communications | (2023)14:5798                                                                                                                                                                                                                                                           6
+Article                                                                                                                      https://doi.org/10.1038/s41467-023-41553-7
+
+
+                          a                                                          b                                   c
+                                          30                 SPN                          DHS-4                                  DHS-16
+
+
+
+
+                           Run time (s)
+                                          20
+
+
+                                          10
+
+
+                                           0
+                                               500   1,000 1,500 2,000 2,500 3,000
+                                                           Cell number
+
+
+                                     500
+                                                           Purkinje
+
+                                     400
+                           Run time (s)
+
+
+
+
+                                     300
+
+                                     200
+
+                                     100
+
+                                          0
+                                               500   1,000 1,500 2,000 2,500 3,000
+                                                           Cell number
+
+
+                                      200
+                                                             CA1                                                    t
+                                                                                                                    t
+                                      150
+                           Run time (s)
+
+
+
+
+                                                                                                                    t
+                                      100                                                                           t
+                                                                                                                    t
+                                          50
+                                                                                                                    t
+                                           0                                                                        t
+                                               500   1,000 1,500 2,000 2,500 3,000
+                                                            Cell number                                             t
+                                                                                                                    t
+                                          80
+                                                            CA3b
+                                                                                                                    t
+
+                                          60                                                                        t
+                           Run time (s)
+
+
+
+
+                                                                                                                    t
+                                          40
+                                                                                                                    t
+
+                                          20                                                                        t
+                                                                                                                    t
+                                           0
+                                               500   1,000 1,500 2,000 2,500 3,000                                  t
+                                                           Cell number
+
+
+                                      100                   Mitral
+
+                                          75
+                           Run time (s)
+
+
+
+
+                                          50
+
+                                          25
+
+                                           0
+                                               500   1,000 1,500 2,000 2,500 3,000
+                                                           Cell number
+
+
+                                      120
+                                                          Pyramidal
+
+                                          90
+                           Run time (s)
+
+
+
+
+                                          60
+
+                                          30
+
+                                           0
+                                               500  1,000 1,500 2,000 2,500 3,000
+                                                          Cell number
+                                                CoreNEURON DHS-4 DHS-16
+
+Fig. 4 | DHS enables cell-type-speciﬁc ﬁnest partition. a Run time of solving            threads for each neuron; DHS-16: DHS with 16 threads for each neuron.
+equations for a 1 s simulation on GPU (dt = 0.025 ms, 40,000 iterations in total).       b, c Visualization of the partition by DHS-4 and DHS-16, each color indicates a single
+CoreNEURON: the parallel method used in CoreNEURON; DHS-4: DHS with four                 thread. During computation, each thread switches among different branches.
+
+
+
+
+Nature Communications | (2023)14:5798                                                                                                                                        7
+Article                                                                                                                                              https://doi.org/10.1038/s41467-023-41553-7
+
+
+      a                                                                                                                                                             b
+
+
+
+
+                                                     Few spine                                                               Full spine
+
+      c
+
+
+                                                                                                                                                                                                   -20
+
+
+
+
+                                                                                                                                                                                Voltage (mV)
+                                                                                                                                                                                                   -40
+
+
+
+
+                                                                                                                                                                                                   -60
+
+
+
+
+                                                                                                                                                                                                   -80
+
+
+                                      t = 549.9 ms                     t = 536.1 ms               t = 549.9 ms                                t = 536.1 ms
+
+
+      d                                                                                                e
+                                                                                                                                     Full spine                                           Few spine
+                                1.0
+                                              Few spine clustered                                                      120 x10³                                 5 x10³
+                                                                                                                             111,068                                4,535.43
+                                              Few spine distributed
+                                              Full spine clustered
+                                0.8
+                                              Full spine distributed
+
+                                                                                                                       80
+            Spike probability
+
+
+
+
+                                                                                                        Run time (s)
+
+
+
+
+                                0.6                                                                                                                             3
+
+
+
+                                0.4
+                                                                                                                       40
+
+                                0.2                                                                                                                             1
+                                                                                                                                          9,443.9
+                                                                                                                                                                                               231.47
+                                                                                                                                                     1,153.53                                             34.51
+                                0.0                                                                                      0                                      0
+                                              40        80      120       160         200   240
+                                                                                                                                                                                     R -
+
+
+
+
+                                      0
+                                                                                                                                                       dr -
+
+
+
+
+                                                                                                                                                                                                           dr -
+                                                                                                                                            R -
+
+
+
+
+                                                                                                                                                                                        N
+                                                                                                                                                                                   EU re
+                                                                                                                                                                            N
+                                                                                                                                               N
+
+
+                                                                                                                                                     en p
+
+
+
+
+                                                                                                                                                                                                         en p
+                                                                                                                                          EU re
+                                                                                                                                     N
+
+
+
+
+                                                                                                                                                         ite
+
+
+
+
+                                                                                                                                                                                                             ite
+                                                                                                                                                                                      O
+                                                                                                                                                    D Dee
+
+
+
+
+                                                                                                                                                                                                        D Dee
+                                                                                                                                                                         O
+                                                                                                                                             O
+
+
+
+
+                                                                                                                                                                                  N Co
+                                                                                                                                  O
+
+
+                                                                                                                                         N Co
+
+
+
+
+                                                         Number of synapses
+                                                                                                                                                                        R
+                                                                                                                                 R
+
+
+
+
+                                                                                                                                                                    EU
+                                                                                                                             EU
+
+
+
+
+                                                                                                                                                                    N
+                                                                                                                             N
+
+
+
+
+Fig. 5 | DHS enables spine-level modeling. a Experiment setup. We examine two                           20 ms, 20 mV. c Color-coded voltages during the simulation in b at speciﬁc times.
+major types of models: few-spine models and full-spine models. Few-spine models                         Colors indicate the magnitude of voltage. d Somatic spike probability as a function
+(two on the left) are the models that incorporated spine area globally into dendrites                   of the number of simultaneously activated synapses (as in Eyal et al.’s work) for four
+and only attach individual spines together with activated synapses. In full-spine                       cases in a. Background noise is attached. e Run time of experiments in d with
+models (two on the right), all spines are explicitly attached over whole dendrites.                     different simulation methods. NEURON: conventional NEURON simulator running
+We explore the effects of clustered and randomly distributed synaptic inputs on the                     on a single CPU core. CoreNEURON: CoreNEURON simulator on a single GPU.
+few-spine models and the full-spine models, respectively. b Somatic voltages                            DeepDendrite: DeepDendrite on a single GPU.
+recorded for cases in a. Colors of the voltage curves correspond to a, scale bar:
+
+
+
+
+Nature Communications | (2023)14:5798                                                                                                                                                                              8
+Article                                                                                                 https://doi.org/10.1038/s41467-023-41553-7
+
+
+    In the DeepDendrite platform, both full-spine and few-spine              retains sufﬁcient numerical accuracy as in the original Hines method at
+models achieved 8 times speedup compared to CoreNEURON on the                the same time.
+GPU platform and 100 times speedup compared to serial NEURON on                    Dendritic spines are the most abundant microstructures in the
+the CPU platform (Fig. 5e; Supplementary Table 1) while keeping the          brain for projection neurons in the cortex, hippocampus, cerebellum,
+identical simulation results (Supplementary Figs. 4 and 8). Therefore,       and basal ganglia. As spines receive most of the excitatory inputs in the
+the DHS method enables explorations of dendritic excitability under          central nervous system, electrical signals generated by spines are the
+more realistic anatomic conditions.                                          main driving force for large-scale neuronal activities in the forebrain
+                                                                             and cerebellum10,11. The structure of the spine, with an enlarged spine
+Discussion                                                                   head and a very thin spine neck—leads to surprisingly high input
+In this work, we propose the DHS method to parallelize the compu-            impedance at the spine head, which could be up to 500 MΩ, combining
+tation of Hines method55 and we mathematically demonstrate that the          experimental data and the detailed compartment modeling
+DHS provides an optimal solution without any loss of precision. Next,        approach48,65. Due to such high input impedance, a single synaptic
+we implement DHS on the GPU hardware platform and use GPU                    input can evoke a “gigantic” EPSP ( ~ 20 mV) at the spine-head level48,66,
+memory boosting techniques to reﬁne the DHS (Fig. 3). When simu-             thereby boosting NMDA currents and ion channel currents in the
+lating a large number of neurons with complex morphologies, DHS              spine11. However, in the classic single detailed compartment models, all
+with memory boosting achieves a 15-fold speedup (Supplementary               spines are replaced by the F coefﬁcient modifying the dendritic cable
+Table 1) as compared to the GPU method used in CoreNEURON and up             geometries54. This approach may compensate for the leak currents and
+to 1,500-fold speedup compared to serial Hines method in the CPU             capacitance currents for spines. Still, it cannot reproduce the high
+platform (Fig. 4; Supplementary Fig. 3 and Supplementary Table 1).           input impedance at the spine head, which may weaken excitatory
+Furthermore, we develop the GPU-based DeepDendrite framework by              synaptic inputs, particularly NMDA currents, thereby reducing the
+integrating DHS into CoreNEURON. Finally, as a demonstration of the          nonlinearity in the neuron’s input-output curve. Our modeling results
+capacity of DeepDendrite, we present a representative application:           are in line with this interpretation.
+examine spine computations in a detailed pyramidal neuron model                    On the other hand, the spine’s electrical compartmentalization is
+with 25,000 spines. Further in this section, we elaborate on how we          always accompanied by the biochemical compartmentalization8,52,67,
+have expanded the DeepDendrite framework to enable efﬁcient                  resulting in a drastic increase of internal [Ca2+], within the spine and a
+training of biophysically detailed neural networks. To explore the           cascade of molecular processes involving synaptic plasticity of
+hypothesis that dendrites improve robustness against adversarial             importance for learning and memory. Intriguingly, the biochemical
+attacks56, we train our network on typical image classiﬁcation tasks. We     process triggered by learning, in turn, remodels the spine’s morphol-
+show that DeepDendrite can support both neuroscience simulations             ogy, enlarging (or shrinking) the spine head, or elongating (or short-
+and AI-related detailed neural network tasks with unprecedented              ening) the spine neck, which signiﬁcantly alters the spine’s electrical
+speed, therefore signiﬁcantly promoting detailed neuroscience simu-          capacity67–70. Such experience-dependent changes in spine morphol-
+lations and potentially for future AI explorations.                          ogy also referred to as “structural plasticity”, have been widely
+      Decades of efforts have been invested in speeding up the Hines         observed in the visual cortex71,72, somatosensory cortex73,74, motor
+method with parallel methods. Early work mainly focuses on network-          cortex75, hippocampus9, and the basal ganglia76 in vivo. They play a
+level parallelization. In network simulations, each cell independently       critical role in motor and spatial learning as well as memory formation.
+solves its corresponding linear equations with the Hines method.             However, due to the computational costs, nearly all detailed network
+Network-level parallel methods distribute a network on multiple              models exploit the “F-factor” approach to replace actual spines, and
+threads and parallelize the computation of each cell group with each         are thus unable to explore the spine functions at the system level. By
+thread57,58. With network-level methods, we can simulate detailed            taking advantage of our framework and the GPU platform, we can run a
+networks on clusters or supercomputers59. In recent years, GPU has           few thousand detailed neurons models, each with tens of thousands of
+been used for detailed network simulation. Because the GPU contains          spines on a single GPU, while maintaining ~100 times faster than the
+massive computing units, one thread is usually assigned one cell rather      traditional serial method on a single CPU (Fig. 5e). Therefore, it enables
+than a cell group35,60,61. With further optimization, GPU-based methods      us to explore of structural plasticity in large-scale circuit models across
+achieve much higher efﬁciency in network simulation. However, the            diverse brain regions.
+computation inside the cells is still serial in network-level methods, so          Another critical issue is how to link dendrites to brain functions at
+they still cannot deal with the problem when the “Hines matrix” of each      the systems/network level. It has been well established that dendrites
+cell scales large.                                                           can perform comprehensive computations on synaptic inputs due to
+      Cellular-level parallel methods further parallelize the computa-       enriched ion channels and local biophysical membrane properties5–7.
+tion inside each cell. The main idea of cellular-level parallel methods is   For example, cortical pyramidal neurons can carry out sublinear
+to split each cell into several sub-blocks and parallelize the computa-      synaptic integration at the proximal dendrite but progressively shift to
+tion of those sub-blocks27,28. However, typical cellular-level methods       supralinear integration at the distal dendrite77. Moreover, distal den-
+(e.g., the “multi-split” method28) pay less attention to the paralleliza-    drites can produce regenerative events such as dendritic sodium
+tion strategy. The lack of a ﬁne parallelization strategy results in         spikes, calcium spikes, and NMDA spikes/plateau potentials6,78. Such
+unsatisfactory performance. To achieve higher efﬁciency, some stu-           dendritic events are widely observed in mice6 or even human cortical
+dies try to obtain ﬁner-grained parallelization by introducing extra         neurons79 in vitro, which may offer various logical operations6,79 or
+computation operations29,38,62 or making approximations on some              gating functions80,81. Recently, in vivo recordings in awake or behaving
+crucial compartments, while solving linear equations63,64. These ﬁner-       mice provide strong evidence that dendritic spikes/plateau potentials
+grained parallelization strategies can get higher efﬁciency but lack         are crucial for orientation selectivity in the visual cortex82, sensory-
+sufﬁcient numerical accuracy as in the original Hines method.                motor integration in the whisker system83,84, and spatial navigation in
+      Unlike previous methods, DHS adopts the ﬁnest-grained paralle-         the hippocampal CA1 region85.
+lization strategy, i.e., compartment-level parallelization. By modeling            To establish the causal link between dendrites and animal
+the problem of “how to parallelize” as a combinatorial optimization          (including human) patterns of behavior, large-scale biophysically
+problem, DHS provides an optimal compartment-level parallelization           detailed neural circuit models are a powerful computational tool to
+strategy. Moreover, DHS does not introduce any extra operation or            realize this mission. However, running a large-scale detailed circuit
+value approximation, so it achieves the lowest computational cost and        model of 10,000-100,000 neurons generally requires the computing
+
+
+Nature Communications | (2023)14:5798                                                                                                                 9
+Article                                                                                                https://doi.org/10.1038/s41467-023-41553-7
+
+
+power of supercomputers. It is even more challenging to optimize            testing scalability in larger-scale problems, understanding perfor-
+such models for in vivo data, as it needs iterative simulations of the      mance across various tasks and domains, and addressing the com-
+models. The DeepDendrite framework can directly support many                putational complexity introduced by novel biological principles, such
+state-of-the-art large-scale circuit models86–88, which were initially      as active dendrites. By overcoming these limitations, we can further
+developed based on NEURON. Moreover, using our framework, a sin-            advance the understanding and capabilities of biophysically detailed
+gle GPU card such as Tesla A100 could easily support the operation of       dendritic neural networks, potentially uncovering new advantages,
+detailed circuit models of up to 10,000 neurons, thereby providing          enhancing their robustness against adversarial attacks and noisy
+carbon-efﬁcient and affordable plans for ordinary labs to develop and       inputs, and ultimately bridging the gap between neuroscience and
+optimize their own large-scale detailed models.                             modern AI.
+     Recent works on unraveling the dendritic roles in task-speciﬁc
+learning have achieved remarkable results in two directions, i.e., sol-     Methods
+ving challenging tasks such as image classiﬁcation dataset ImageNet         Simulation with DHS
+with simpliﬁed dendritic networks20, and exploring full learning            CoreNEURON35 simulator (https://github.com/BlueBrain/CoreNeuron)
+potentials on more realistic neuron21,22. However, there lies a trade-off   uses the NEURON25 architecture and is optimized for both memory
+between model size and biological detail, as the increase in network        usage and computational speed. We implement our Dendritic Hier-
+scale is often sacriﬁced for neuron-level complexity19,20,89. Moreover,     archical Scheduling (DHS) method in the CoreNEURON environment
+more detailed neuron models are less mathematically tractable and           by modifying its source code. All models that can be simulated on GPU
+computationally expensive21.                                                with CoreNEURON can also be simulated with DHS by executing the
+     There has also been progress in the role of active dendrites in        following command:
+ANNs for computer vision tasks. Iyer et al. 90. proposed a novel ANN              coreneuron_exec -d /path/to/models -e time --cell-permute 3
+architecture with active dendrites, demonstrating competitive results       --cell-nthread 16 --gpu
+in multi-task and continual learning. Jones and Kording91 used a binary           The usage options are as in Table 1.
+tree to approximate dendrite branching and provided valuable
+insights into the inﬂuence of tree structure on single neurons’ com-        Accuracy of the simulation using cellular-level parallel
+putational capacity. Bird et al. 92. proposed a dendritic normalization     computation
+rule based on biophysical behavior, offering an interesting perspective     To ensure the accuracy of the simulation, we ﬁrst need to deﬁne the
+on the contribution of dendritic arbor structure to computation. While      correctness of a cellular-level parallel algorithm to judge whether it will
+these studies offer valuable insights, they primarily rely on abstrac-      generate identical solutions compared with the proven correct serial
+tions derived from spatially extended neurons, and do not fully exploit     methods, like the Hines method used in the NEURON simulation
+the detailed biological properties and spatial information of dendrites.    platform. Based on the theories in parallel computing34, a parallel
+Further investigation is needed to unveil the potential of leveraging       algorithm will yield an identical result as its corresponding serial
+more realistic neuron models for understanding the shared mechan-           algorithm, if and only if the data process order in the parallel algorithm
+isms underlying brain computation and deep learning.                        is consistent with data dependency in the serial method. The Hines
+     In response to these challenges, we developed DeepDendrite, a          method has two symmetrical phases: triangularization and back-
+tool that uses the Dendritic Hierarchical Scheduling (DHS) method to        substitution. By analyzing the serial computing Hines method55, we
+signiﬁcantly reduce computational costs and incorporates an I/O             ﬁnd that its data dependency can be formulated as a tree structure,
+module and a learning module to handle large datasets. With Deep-           where the nodes on the tree represent the compartments of the
+Dendrite, we successfully implemented a three-layer hybrid neural           detailed neuron model. In the triangularization process, the value of
+network, the Human Pyramidal Cell Network (HPC-Net) (Fig. 6a, b).           each node depends on its children nodes. In contrast, during the back-
+This network demonstrated efﬁcient training capabilities in image           substitution process, the value of each node is dependent on its parent
+classiﬁcation tasks, achieving approximately 25 times speedup com-          node (Fig. 1d). Thus, we can compute nodes on different branches in
+pared to training on a traditional CPU-based platform (Fig. 6f; Sup-        parallel as their values are not dependent.
+plementary Table 1).                                                              Based on the data dependency of the serial computing Hines
+     Additionally, it is widely recognized that the performance of          method, we propose three conditions to make sure a parallel method
+Artiﬁcial Neural Networks (ANNs) can be undermined by adversarial           will yield identical solutions as the serial computing Hines method: (1)
+attacks93—intentionally engineered perturbations devised to mislead         The tree morphology and initial values of all nodes are identical to
+ANNs. Intriguingly, an existing hypothesis suggests that dendrites and      those in the serial computing Hines method; (2) In the triangularization
+synapses may innately defend against such attacks56. Our experimental       phase, a node can be processed if and only if all its children nodes are
+results utilizing HPC-Net lend support to this hypothesis, as we            already processed; (3) In the back-substitution phase, a node can be
+observed that networks endowed with detailed dendritic structures           processed only if its parent node is already processed. Once a parallel
+demonstrated some increased resilience to transfer adversarial              computing method satisﬁes these three conditions, it will produce
+attacks94 compared to standard ANNs, as evident in MNIST95 and              identical solutions as the serial computing method.
+Fashion-MNIST96 datasets (Fig. 6d, e). This evidence implies that the
+inherent biophysical properties of dendrites could be pivotal in aug-       Computational cost of cellular-level parallel computing method
+menting the robustness of ANNs against adversarial interference.            To theoretically evaluate the run time, i.e., efﬁciency, of the serial and
+Nonetheless, it is essential to conduct further studies to validate these   parallel computing methods, we introduce and formulate the concept
+ﬁndings using more challenging datasets such as ImageNet97.                 of computational cost as follows: given a tree T and k threads (basic
+     In conclusion, DeepDendrite has shown remarkable potential in          computational units) to perform triangularization, parallel triangular-
+image classiﬁcation tasks, opening up a world of exciting future            ization equals to divide the node set V of T into n subsets, i.e., V = {V1,
+directions and possibilities. To further advance DeepDendrite and the       V2, … Vn} where the size of each subset |Vi | ≤ k, i.e., at most k nodes can
+application of biologically detailed dendritic models in AI tasks, we       be processed each step since there are only k threads. The process of
+may focus on developing multi-GPU systems and exploring applica-            the triangularization phase follows the order: V1 → V2 → … →Vn, and
+tions in other domains, such as Natural Language Processing (NLP),          nodes in the same subset Vi can be processed in parallel. So, we deﬁne |
+where dendritic ﬁltering properties align well with the inherently          V | (the size of set V, i.e., n here) as the computational cost of the
+noisy and ambiguous nature of human language. Challenges include            parallel computing method. In short, we deﬁne the computational cost
+
+
+Nature Communications | (2023)14:5798                                                                                                                10
+Article                                                                                                                                                                                                   https://doi.org/10.1038/s41467-023-41553-7
+
+
+             a                                                                                             b
+                                         Teacher signals                                                   Training with mini-batch
+
+
+
+
+                          Output (#10)
+                          Hidden (#64)
+
+
+
+
+                                                                                                                                                                                                                             ...
+                                                                                                                                            ...
+
+
+
+
+                                                                                                                                                                                                                                ...
+                                                                                                                         ...
+
+
+
+
+                                                                                                                                               ...
+                                                                                                                            ...
+                          Input (#784)
+
+
+
+
+                                                                             Error feedback
+                                                                             Feedforward
+
+             c
+                             Before training                                                                                                                                                Weights before training
+                                                                                                                                            30                                              30                                        30
+
+                                                                                                                                             0                                                0                                        0
+                                                                                                                                            30                                               30                                       30
+
+
+
+
+                                                                                                                                  Number
+                                                                                                                                             0                                                0                                        0
+                                                                                                                                            30                                               30                                       30
+
+                                                                                                                                             0                                                0                                        0
+                                                                                                                                            30                                               30                                       30
+
+                                                                                                                                            0                                                 0                                        0
+                                                                                                                                                 -0.1             0.1                             -0.1              0.1                     -0.1              0.1
+                                                                                                                                                        Weights                                           Weights                                  Weights
+
+                             After training                                                                                                                                                 Weights after training
+                                                                                                                                           250                                              250                                       250
+
+                                                                                                                                             0                                                0                                         0
+                                                                                                                                           250                                              250                                       250
+                                                                                                                                  Number
+
+
+
+
+                                                                                                                                             0                                                0                                         0
+                                                                                                                                           250                                              250                                       250
+
+                                                                                                                                             0                                                0                                         0
+                                                                                                                                           250                                              250                                       250
+
+                                                                                                                                            0                                                 0                                        0
+                                                                                                                                                 -2.0              2.0                            -2.0               2.0                -2.0                  2.0
+                                                                                                                                                        Weights                                           Weights                                   Weights
+
+             d
+                                     Clean                                                                              Adversarial sample                  #784 #64 #10
+                                     image                                                                                (noisy image)
+                                                                                               avg. pool
+
+
+
+
+                                                                                                                                                                                                                                                      Predicted
+                                                           conv
+
+
+
+
+                                                                                       conv
+                                                   conv
+
+
+
+
+                                                                               conv
+
+
+
+
+                                                                                                               fc10
+
+
+
+
+                                                                    ......                                                                                                                                                                              label
+
+
+                                                                                                                                                                   ANN                                      HPC-Net
+
+                                                                  Adversarial attack                                                                                                   Models trained with clean images
+
+
+             e                                                                                                                                                     f
+                                                          MNIST                                                       Fashion-MNIST                                                                      Train                                     Test
+                            1.0                                                          1.0                                                                                           30 x10³                             4.5 x10³
+
+                            0.9                                                          0.9
+                                                                                                                                                                        Run time (s)
+
+
+
+
+                                                                                                                                                                                       20                                  3.0
+               Accuracy
+
+
+
+
+                            0.8                                                          0.8
+
+                            0.7                                                          0.7
+                                                                                                                                                                                       10                                  1.5
+                            0.6                                                          0.6
+
+                            0.5                                           0.5                                                                                                           0                      0.0
+                                         0.00 0.04 0.08 0.12 0.16 0.20          0.00 0.04 0.08 0.12 0.16 0.20
+                                                                    Attack strength                                                                                                           Parallel NEURON + Python
+                                                                   ANN            HPC-Net                                                                                                     DeepDendrite
+
+
+
+of a parallel method as the number of steps it takes in the triangular-                                                                           Given a tree T = {V, E} and a positive integer k, where V is the node-
+ization phase. Because the back-substitution is symmetrical with tri-                                                                       set and E is the edge set. Deﬁne partition P(V) = {V1, V2, … Vn}, |Vi | ≤ k, 1 ≤
+angularization, the total cost of the entire solving equation phase is                                                                      i ≤ n, where |Vi| indicates the cardinal number of subset Vi, i.e., the
+twice that of the triangularization phase.                                                                                                  number of nodes in Vi, and for each node v∈Vi, all its children nodes
+                                                                                                                                            {c | c∈children(v)} must in a previous subset Vj, where 1 ≤ j < i. Our goal
+Mathematical scheduling problem                                                                                                             is to ﬁnd an optimal partition P*(V) whose computational cost |P*(V)| is
+Based on the simulation accuracy and computational cost, we for-                                                                            minimal.
+mulate the parallelization problem as a mathematical scheduling                                                                                   Here subset Vi consists of all nodes that will be computed at i-th
+problem:                                                                                                                                    step (Fig. 2e), so |Vi | ≤ k indicates that we can compute k nodes each
+
+
+Nature Communications | (2023)14:5798                                                                                                                                                                                                                               11
+Article                                                                                                               https://doi.org/10.1038/s41467-023-41553-7
+
+Fig. 6 | DeepDendrite enables learning with detailed neural networks. a The            the transfer adversarial attack experiment. We ﬁrst generate adversarial samples of
+illustration of the Human Pyramidal Cell Network (HPC-Net) for image classiﬁca-        the test set on a 20-layer ResNet. Then use these adversarial samples (noisy images)
+tion. Images are transformed to spike trains and fed into the network model.           to test the classiﬁcation accuracy of models trained with clean images. e Prediction
+Learning is triggered by error signals propagated from soma to dendrites.              accuracy of each model on adversarial samples after training 30 epochs on MNIST
+b Training with mini-batch. Multiple networks are simulated simultaneously with        (left) and Fashion-MNIST (right) datasets. f Run time of training and testing for the
+different images as inputs. The total weight updates ΔW are computed as the            HPC-Net. The batch size is set to 16. Left, run time of training one epoch. Right, run
+average of ΔWi from each network. c Comparison of the HPC-Net before and after         time of testing. Parallel NEURON + Python: training and testing on a single CPU with
+training. Left, the visualization of hidden neuron responses to a speciﬁc input        multiple cores, using 40-process-parallel NEURON to simulate the HPC-Net and
+before (top) and after (bottom) training. Right, hidden layer weights (from input to   extra Python code to support mini-batch training. DeepDendrite: training and
+hidden layer) distribution before (top) and after (bottom) training. d Workﬂow of      testing the HPC-Net on a single GPU with DeepDendrite.
+
+
+
+
+Table 1 | Usage options for DHS-embedded CoreNEURON                                    all its child nodes are already processed. In back-substitution, the
+                                                                                       computation order is the opposite of that in triangularization, i.e.,
+-d                 Path containing the model data                                      from Vn to V1. As shown before, the child nodes of all nodes in Vi are in
+-e                 Simulation time (ms)                                                {V1, V2, … Vi-1}, so parent nodes of nodes in Vi are in {Vi+1, Vi+2, … Vn},
+                                                                                       which satisﬁes condition 3: in back-substitution, a node can be pro-
+--cell-permute     Strategy for optimizing simulation: 1 and 2 for original strate-
+                   gies in CoreNEURON, 3 for DHS method                                cessed only if its parent node is already processed.
+--cell-nthread     Number of threads used for each cell
+                                                                                       Optimality proof for DHS
+--gpu              Simulate on GPU
+                                                                                       The idea of the proof is that if there is another optimal solution, it can
+                                                                                       be transformed into our DHS solution without increasing the number
+                                                                                       of steps the algorithm requires, thus indicating that the DHS solution is
+step at most because the number of available threads is k. The                         optimal.
+restriction “for each node v∈Vi, all its children nodes {c | c∈children(v)}                   For each subset Vi in P(V), DHS moves k (thread number) deepest
+must in a previous subset Vj, where 1 ≤ j < i” indicates that node v can be            nodes from the corresponding candidate set Qi to Vi. If the number of
+processed only if all its child nodes are processed.                                   nodes in Qi is smaller than k, move all nodes from Qi to Vi. To simplify,
+                                                                                       we introduce Di, indicating the depth sum of k deepest nodes in Qi. All
+DHS implementation                                                                     subsets in P(V) satisfy the max-depth criteria (Supplementary Fig. 6a):
+                                                                                       P
+We aim to ﬁnd an optimal way to parallelize the computation of solving                    vi 2V i dðvi Þ = Di . We then prove that selecting the deepest nodes in
+linear equations for each neuron model by solving the mathematical                     each iteration makes P(V) an optimal partition. If there exists an opti-
+scheduling problem above. To get the optimal partition, DHS ﬁrst                       mal partition P*(V) = {V*1, V*2, … V*s} containing subsets that do not
+analyzes the topology and calculates the depth d(v) for all nodes v∈V.                 satisfy the max-depth criteria, we can modify the subsets in P*(V) so
+Then, the following two steps will be executed iteratively until every                 that all subsets consist of the deepest nodes from Q and the number of
+node v∈V is assigned to a subset: (1) ﬁnd all candidate nodes and put                  subsets ( | P*(V)|) remain the same after modiﬁcation.
+these nodes into candidate set Q. A node is a candidate only if all its                       Without any loss of generalization, we
+                                                                                                                               P            from the ﬁrst subset
+                                                                                                                                         start
+child nodes have been processed or it does not have any child nodes.                   V*i not satisfying the criteria, i.e., v* 2V * d v*i <Di . There are two pos-
+                                                                                                                                  i i
+(2) if |Q | ≤ k, i.e., the number of candidate nodes is smaller or equiva-             sible cases that will make V*i not satisfy the max-depth criteria:
+lent to the number of available threads, remove all nodes in Q and put                 (1) | V i | < k and there exist some valid nodes in Qi that are not put to V*i;
+                                                                                               *
+
+them into V*i, otherwise, remove k deepest nodes from Q and add them                   (2) | V*i | = k but nodes in V*i are not the k deepest nodes in Qi.
+to subset Vi. Label these nodes as processed nodes (Fig. 2d). After                           For case (1), because some candidate nodes are not put to V*i,
+ﬁlling in subset Vi, go to step (1) to ﬁll in the next subset Vi+1.                    these nodes must be in the subsequent subsets. As |V*i | < k, we can
+                                                                                       move the corresponding nodes from the subsequent subsets to V*i,
+Correctness proof for DHS                                                              which will not increase the number of subsets and make V*i satisfy the
+After applying DHS to a neural tree T = {V, E}, we get a partition                     criteria (Supplementary Fig. 6b, top). For case (2), |V*i | = k, these dee-
+P(V) = {V1, V2, … Vn}, |Vi | ≤ k, 1 ≤ i ≤ n. Nodes in the same subset Vi will be       per nodes that are not moved from the candidate set Qi into V*i must be
+computed in parallel, taking n steps to perform triangularization and                  added to subsequent subsets (Supplementary Fig. 6b, bottom). These
+back-substitution, respectively. We then demonstrate that the reor-                    deeper nodes can be moved from subsequent subsets to V*i through
+dering of the computation in DHS will result in a result identical to the              the following method. Assume that after ﬁlling V*i, v is picked and one
+serial Hines method.                                                                   of the k-th deepest nodes v’ is still in Qi, thus v’ will be put into a
+      The partition P(V) obtained from DHS decides the computation                     subsequent subset V*j (j > i). We ﬁrst move v from V*i to V*i + 1, then
+order of all nodes in a neural tree. Below we demonstrate that the                     modify subset V*i + 1 as follows: if |V*i + 1 | ≤ k and none of the nodes in
+computation order determined by P(V) satisﬁes the correctness con-                     V*i + 1 is the parent of node v, stop modifying the latter subsets.
+ditions. P(V) is obtained from the given neural tree T. Operations in                  Otherwise, modify V*i + 1 as follows (Supplementary Fig. 6c): if the
+DHS do not modify the tree topology and values of tree nodes (cor-                     parent node of v is in V*i + 1, move this parent node to V*i + 2; else move
+responding values in the linear equations), so the tree morphology and                 the node with minimum depth from V*i + 1 to V*i + 2. After adjusting V*i,
+initial values of all nodes are not changed, which satisﬁes condition 1:               modify subsequent subsets V*i + 1, V*i + 2, … V*j-1 with the same strategy.
+the tree morphology and initial values of all nodes are identical to                   Finally, move v’ from V*j to V*i.
+those in serial Hines method. In triangularization, nodes are processed                       With the modiﬁcation strategy described above, we can replace
+from subset V1 to Vn. As shown in the implementation of DHS, all nodes                 all shallower nodes in V*i with the k-th deepest node in Qi and keep
+in subset Vi are selected from the candidate set Q, and a node can be                  the number of subsets, i.e., |P*(V)| the same after modiﬁcation. We
+put into Q only if all its child nodes have been processed. Thus the child             can modify the nodes with the same strategy for all subsets in P*(V)
+nodes of all nodes in Vi are in {V1, V2, … Vi-1}, meaning that a node is only          that do not contain the deepest nodes. Finally, all subsets V*i∈P*(V)
+computed after all its children have been processed, which satisﬁes                    can satisfy the max-depth criteria, and |P*(V)| does not change after
+condition 2: in triangularization, a node can be processed if and only if              modifying.
+
+
+Nature Communications | (2023)14:5798                                                                                                                                     12
+Article                                                                                                   https://doi.org/10.1038/s41467-023-41553-7
+
+
+     In conclusion, DHS generates a partition P(V), and all subsets            speciﬁc membrane capacitance, membrane resistance, and axial
+                                          P
+Vi∈P(V) satisfy the max-depth condition: vi 2V i dðvi Þ = Di . For any other   resistivity were the same as those for dendrites.
+                    *
+optimal partition P (V) we can modify its subsets to make its structure
+the same as P(V), i.e., each subset consists of the deepest nodes in the       Synaptic inputs
+candidate set, and keep |P*(V)| the same after modiﬁcation. So, the            We investigated neuronal excitability for both distributed and clus-
+partition P(V) obtained from DHS is one of the optimal partitions.             tered synaptic inputs. All activated synapses were attached to the
+                                                                               terminal of the spine head. For distributed inputs, all activated
+GPU implementation and memory boosting                                         synapses were randomly distributed on all dendrites. For clustered
+To achieve high memory throughput, GPU utilizes the memory hier-               inputs, each cluster consisted of 20 activated synapses that were uni-
+archy of (1) global memory, (2) cache, (3) register, where global              formly distributed on a single randomly-selected compartment. All
+memory has large capacity but low throughput, while registers have             synapses were activated simultaneously during the simulation.
+low capacity but high throughput. We aim to boost memory                            AMPA-based and NMDA-based synaptic currents were simulated
+throughput by leveraging the memory hierarchy of GPU.                          as in Eyal et al.’s work. AMPA conductance was modeled as a double-
+     GPU employs SIMT (Single-Instruction, Multiple-Thread) archi-             exponential function and NMDA conduction as a voltage-dependent
+tecture. Warps are the basic scheduling units on GPU (a warp is a group        double-exponential function. For the AMPA model, the speciﬁc τrise
+of 32 parallel threads). A warp executes the same instruction with             and τdecay were set to 0.3 and 1.8 ms. For the NMDA model, τrise and
+different data for different threads46. Correctly ordering the nodes is        τdecay were set to 8.019 and 34.9884 ms, respectively. The maximum
+essential for this batching of computation in warps, to make sure DHS          conductance of AMPA and NMDA were 0.73 nS and 1.31 nS.
+obtains identical results as the serial Hines method. When imple-
+menting DHS on GPU, we ﬁrst group all cells into multiple warps based          Background noise
+on their morphologies. Cells with similar morphologies are grouped in          We attached background noise to each cell to simulate a more realistic
+the same warp. We then apply DHS on all neurons, assigning the                 environment. Noise patterns were implemented as Poisson spike trains
+compartments of each neuron to multiple threads. Because neurons               with a constant rate of 1.0 Hz. Each pattern started at tstart = 10 ms and
+are grouped into warps, the threads for the same neuron are in the             lasted until the end of the simulation. We generated 400 noise spike
+same warp. Therefore, the intrinsic synchronization in warps keeps the         trains for each cell and attached them to randomly-selected synapses.
+computation order consistent with the data dependency of the serial            The model and speciﬁc parameters of synaptic currents were the same
+Hines method. Finally, threads in each warp are aligned and rearranged         as described in Synaptic Inputs, except that the maximum con-
+according to the number of compartments.                                       ductance of NMDA was uniformly distributed from 1.57 to 3.275,
+     When a warp loads pre-aligned and successively-stored data from           resulting in a higher AMPA to NMDA ratio.
+global memory, it can make full use of the cache, which leads to high
+memory throughput, while accessing scatter-stored data would                   Exploring neuronal excitability
+reduce memory throughput. After compartments assignment and                    We investigated the spike probability when multiple synapses were
+threads rearrangement, we permute data in global memory to make it             activated simultaneously. For distributed inputs, we tested 14 cases,
+consistent with computing orders so that warps can load successively-          from 0 to 240 activated synapses. For clustered inputs, we tested 9
+stored data when executing the program. Moreover, we put those                 cases in total, activating from 0 to 12 clusters respectively. Each cluster
+necessary temporary variables into registers rather than global mem-           consisted of 20 synapses. For each case in both distributed and clus-
+ory. Registers have the highest memory throughput, so the use of               tered inputs, we calculated the spike probability with 50 random
+registers further accelerates DHS.                                             samples. Spike probability was deﬁned as the ratio of the number of
+                                                                               neurons ﬁred to the total number of samples. All 1150 samples were
+Full-spine and few-spine biophysical models                                    simulated simultaneously on our DeepDendrite platform, reducing the
+We used the published human pyramidal neuron51. The membrane                   simulation time from days to minutes.
+capacitance cm = 0.44 μF cm-2, membrane resistance rm = 48,300 Ω
+cm2, and axial resistivity ra = 261.97 Ω cm. In this model, all dendrites      Performing AI tasks with the DeepDendrite platform
+were modeled as passive cables while somas were active. The leak               Conventional detailed neuron simulators lack two functionalities
+reversal potential El = -83.1 mV. Ion channels such as Na+ and K+ were         important to modern AI tasks: (1) alternately performing simulations
+inserted on soma and initial axon, and their reversal potentials were          and weight updates without heavy reinitialization and (2) simulta-
+ENa = 67.6 mV, EK = -102 mV respectively. All these speciﬁc parameters         neously processing multiple stimuli samples in a batch-like manner.
+were set the same as in the model of Eyal, et al. 51, for more details         Here we present the DeepDendrite platform, which supports both
+please refer to the published model (ModelDB, access No. 238347).              biophysical simulating and performing deep learning tasks with
+      In the few-spine model, the membrane capacitance and maximum             detailed dendritic models.
+leak conductance of the dendritic cables 60 μm away from soma were                  DeepDendrite consists of three modules (Supplementary Fig. 5):
+multiplied by a Fspine factor to approximate dendritic spines. In this         (1) an I/O module; (2) a DHS-based simulating module; (3) a learning
+model, Fspine was set to 1.9. Only the spines that receive synaptic inputs     module. When training a biophysically detailed model to perform
+were explicitly attached to dendrites.                                         learning tasks, users ﬁrst deﬁne the learning rule, then feed all training
+      In the full-spine model, all spines were explicitly attached to          samples to the detailed model for learning. In each step during train-
+dendrites. We calculated the spine density with the reconstructed              ing, the I/O module picks a speciﬁc stimulus and its corresponding
+neuron in Eyal, et al. 51. The spine density was set to 1.3 μm-1, and each     teacher signal (if necessary) from all training samples and attaches the
+cell contained 24994 spines on dendrites 60 μm away from the soma.             stimulus to the network model. Then, the DHS-based simulating
+      The morphologies and biophysical mechanisms of spines were               module initializes the model and starts the simulation. After simula-
+the same in few-spine and full-spine models. The length of the spine           tion, the learning module updates all synaptic weights according to the
+neck Lneck = 1.35 μm and the diameter Dneck = 0.25 μm, whereas the             difference between model responses and teacher signals. After train-
+length and diameter of the spine head were 0.944 μm, i.e., the spine           ing, the learned model can achieve performance comparable to ANN.
+head area was set to 2.8 μm2. Both spine neck and spine head were              The testing phase is similar to training, except that all synaptic weights
+modeled as passive cables, with the reversal potential El = -86 mV. The        are ﬁxed.
+
+
+
+Nature Communications | (2023)14:5798                                                                                                                  13
+Article                                                                                                     https://doi.org/10.1038/s41467-023-41553-7
+
+
+HPC-Net model                                                                  were set the same as those of the input neurons. Synaptic currents
+Image classiﬁcation is a typical task in the ﬁeld of AI. In this task, a       activated by hidden neurons are also in the form of Eq. (4).
+model should learn to recognize the content in a given image and
+output the corresponding label. Here we present the HPC-Net, a net-            Image classiﬁcation with HPC-Net
+work consisting of detailed human pyramidal neuron models that can             For each input image stimulus, we ﬁrst normalized all pixel values to
+learn to perform image classiﬁcation tasks by utilizing the DeepDen-           0.0-1.0. Then we converted normalized pixels to spike trains and
+drite platform.                                                                attached them to input neurons. Somatic voltages of the output neu-
+      HPC-Net has three layers, i.e., an input layer, a hidden layer, and an   rons are used to compute the predicted probability of each class, as
+output layer. The neurons in the input layer receive spike trains con-         shown in equation 6, where pi is the probability of i-th class predicted
+verted from images as their input. Hidden layer neurons receive the            by the HPC-Net, vi is the average somatic voltage from 20 ms to 50 ms
+output of input layer neurons and deliver responses to neurons in the          of the i-th output neuron, and C indicates the number of classes, which
+output layer. The responses of the output layer neurons are taken as           equals the number of output neurons. The class with the maximum
+the ﬁnal output of HPC-Net. Neurons between adjacent layers are fully          predicted probability is the ﬁnal classiﬁcation result. In this paper, we
+connected.                                                                     built the HPC-Net with 784 input neurons, 64 hidden neurons, and 10
+      For each image stimulus, we ﬁrst convert each normalized pixel to        output neurons.
+a homogeneous spike train. For pixel with coordinates (x, y) in the
+image, the corresponding spike train has a constant interspike interval                                                 i Þ
+                                                                                                                    expðv
+                                                                                                             pi = PC1                                   ð6Þ
+τISI(x, y) (in ms) which is determined by the pixel value p(x, y) as shown                                             expð  c Þ
+                                                                                                                             v
+                                                                                                                   c=0
+in Eq. (1).
+
+                                                   5                           Synaptic plasticity rules for HPC-Net
+                         τ ISI ð x,yÞ =                                  ð1Þ
+                                            pð x,yÞ + 0:01                     Inspired by previous work36, we use a gradient-based learning rule to
+                                                                               train our HPC-Net to perform the image classiﬁcation task. The loss
+     In our experiment, the simulation for each stimulus lasted 50 ms.         function we use here is cross-entropy, given in Eq. (7), where pi is the
+All spike trains started at 9 + τISI ms and lasted until the end of the        predicted probability for class i, yi indicates the actual class the sti-
+simulation. Then we attached all spike trains to the input layer neurons       mulus image belongs to, yi = 1 if input image belongs to class i, and
+in a one-to-one manner. The synaptic current triggered by the spike            yi = 0 if not.
+arriving at time t0 is given by
+                                                                                                                      X
+                                                                                                                      C1
+                                                                                                           E=          yi log pi                      ð7Þ
+                           I syn = g syn v  E syn                       ð2Þ                                          i=0
+
+                                                                                     When training HPC-Net, we compute the update for weight Wijk
+                            g syn = g max eðtt 0 Þ=τ                   ð3Þ   (the synaptic weight of the k-th synapse connecting neuron i to neuron
+                                                                               j) at each time step. After the simulation of each image stimulus, Wijk is
+where v is the post-synaptic voltage, the reversal potential Esyn = 1 mV,      updated as shown in Eq. (8):
+the maximum synaptic conductance gmax = 0.05 μS, and the time
+                                                                                                                             dt X
+                                                                                                                                     te
+constant τ = 0.5 ms.
+                                                                                                    W ijk = W ijk  η                    ΔW tijk         ð8Þ
+     Neurons in the input layer were modeled with a passive single-                                                        te  ts t = t
+                                                                                                                                        s
+compartment model. The speciﬁc parameters were set as follows:
+membrane capacitance cm = 1.0 μF cm-2, membrane resistance rm = 104
+Ω cm2, axial resistivity ra = 100 Ω cm, reversal potential of passive                                                 ∂E
+                                                                                                          ΔW tijk =      r g f ðvt Þ                     ð9Þ
+compartment El = 0 mV.                                                                                                 j ijk ijk i
+                                                                                                                      ∂v
+     The hidden layer contains a group of human pyramidal neuron
+models, receiving the somatic voltages of input layer neurons. The             Here η is the learning rate, ΔW tijk is the update value at time t, vj, vi are
+morphology was from Eyal, et al. 51, and all neurons were modeled with         somatic voltages of neuron i and j respectively, Iijk is the k-th synaptic
+passive cables. The speciﬁc membrane capacitance cm = 1.5 μF cm-2,             current activated by neuron i on neuron j, gijk its synaptic conductance,
+membrane resistance rm = 48,300 Ω cm2, axial resistivity ra = 261.97 Ω         rijk is the transfer resistance between the k-th connected compartment
+cm, and the reversal potential of all passive cables El = 0 mV. Input          of neuron i on neuron j’s dendrite to neuron j’s soma, ts = 30 ms,
+neurons could make multiple connections to randomly-selected                   te = 50 ms are start time and end time for learning respectively. For
+locations on the dendrites of hidden neurons. The synaptic current
+                                                                               output neurons, the error term ∂∂E   
+                                                                                                                    vout
+                                                                                                                         can be computed as shown in Eq.
+activated by the k-th synapse of the i-th input neuron on neuron j’s                                                   j
+
+dendrite is deﬁned as in Eq. (4), where gijk is the synaptic conductance,      (10). For hidden neurons, the error term ∂∂E
+                                                                                                                          h
+                                                                                                                          v
+                                                                                                                             is calculated from the error
+                                                                                                                                    j
+Wijk is the synaptic weight, f is the ReLU-like somatic activation func-
+                                                                               terms in the output layer, given in Eq. (11).
+tion, and vti is the somatic voltage of the i-th input neuron at time t.
+                                                                                                                ∂E
+                             I tijk = g ijk W ijk f ðvti Þ              ð4Þ                                          = yj  p j                         ð10Þ
+                                                                                                                out
+                                                                                                               ∂v j
+
+                                        (
+                                            vti ,   vti > 0                                                                                
+                           f ðvti Þ =                                    ð5Þ                         ∂E X   C1
+                                                                                                                 ∂E
+                                            0,      vti ≤ 0                                               =                                h
+                                                                                                                    out r jc g jc W jc f 0 vj            ð11Þ
+                                                                                                      
+                                                                                                     ∂vjh
+                                                                                                            c=0
+                                                                                                                ∂v c
+
+
+     Neurons in the output layer were also modeled with a passive                  Since all output neurons are single-compartment, r jc equals to the
+single-compartment model, and each hidden neuron only made one                 input resistance of the corresponding compartment, r c . Transfer and
+synaptic connection to each output neuron. All speciﬁc parameters              input resistances are computed by NEURON.
+
+
+Nature Communications | (2023)14:5798                                                                                                                     14
+Article                                                                                               https://doi.org/10.1038/s41467-023-41553-7
+
+
+     Mini-batch training is a typical method in deep learning for           8.    Yuste, R. & Denk, W. Dendritic spines as basic functional units of
+achieving higher prediction accuracy and accelerating convergence.                neuronal integration. Nature 375, 682–684 (1995).
+DeepDendrite also supports mini-batch training. When training HPC-          9.    Engert, F. & Bonhoeffer, T. Dendritic spine changes associated
+Net with mini-batch size Nbatch, we make Nbatch copies of HPC-Net.                with hippocampal long-term synaptic plasticity. Nature 399,
+During training, each copy is fed with a different training sample from           66–70 (1999).
+the batch. DeepDendrite ﬁrst computes the weight update for each            10.   Yuste, R. Dendritic spines and distributed circuits. Neuron 71,
+copy separately. After all copies in the current training batch are done,         772–781 (2011).
+the average weight update is calculated and weights in all copies are       11.   Yuste, R. Electrical compartmentalization in dendritic spines.
+updated by this same amount.                                                      Annu. Rev. Neurosci. 36, 429–449 (2013).
+                                                                            12.   Rall, W. Branching dendritic trees and motoneuron membrane
+Robustness against adversarial attack with HPC-Net                                resistivity. Exp. Neurol. 1, 491–527 (1959).
+To demonstrate the robustness of HPC-Net, we tested its prediction          13.   Segev, I. & Rall, W. Computational study of an excitable dendritic
+accuracy on adversarial samples and compared it with an analogous                 spine. J. Neurophysiol. 60, 499–523 (1988).
+ANN (one with the same 784-64-10 structure and ReLU activation, for         14.   Silver, D. et al. Mastering the game of go with deep neural net-
+fair comparison in our HPC-Net each input neuron only made one                    works and tree search. Nature 529, 484–489 (2016).
+synaptic connection to each hidden neuron). We ﬁrst trained HPC-Net         15.   Silver, D. et al. A general reinforcement learning algorithm that
+and ANN with the original training set (original clean images). Then we           masters chess, shogi, and go through self-play. Science 362,
+added adversarial noise to the test set and measured their prediction             1140–1144 (2018).
+accuracy on the noisy test set. We used the Foolbox98,99 to generate        16.   McCloskey, M. & Cohen, N. J. Catastrophic interference in con-
+adversarial noise with the FGSM method93. ANN was trained with                    nectionist networks: the sequential learning problem. Psychol.
+PyTorch100, and HPC-Net was trained with our DeepDendrite. For                    Learn. Motiv. 24, 109–165 (1989).
+fairness, we generated adversarial noise on a signiﬁcantly different        17.   French, R. M. Catastrophic forgetting in connectionist networks.
+network model, a 20-layer ResNet101. The noise level ranged from 0.02             Trends Cogn. Sci. 3, 128–135 (1999).
+to 0.2. We experimented on two typical datasets, MNIST95 and Fashion-       18.   Naud, R. & Sprekeler, H. Sparse bursts optimize information
+MNIST96. Results show that the prediction accuracy of HPC-Net is 19%              transmission in a multiplexed neural code. Proc. Natl Acad. Sci.
+and 16.72% higher than that of the analogous ANN, respectively.                   USA 115, E6329–E6338 (2018).
+                                                                            19.   Sacramento, J., Costa, R. P., Bengio, Y. & Senn, W. Dendritic cor-
+Reporting summary                                                                 tical microcircuits approximate the backpropagation algorithm. in
+Further information on research design is available in the Nature                 Advances in Neural Information Processing Systems 31 (NeurIPS
+Portfolio Reporting Summary linked to this article.                               2018) (NeurIPS, 2018).
+                                                                            20.   Payeur, A., Guerguiev, J., Zenke, F., Richards, B. A. & Naud, R.
+Data availability                                                                 Burst-dependent synaptic plasticity can coordinate learning in
+The data that support the ﬁndings of this study are available within the          hierarchical circuits. Nat. Neurosci. 24, 1010–1019 (2021).
+paper, Supplementary Information and Source Data ﬁles provided with         21.   Bicknell, B. A. & Häusser, M. A synaptic learning rule for exploiting
+this paper. The source code and data that used to reproduce the                   nonlinear dendritic computation. Neuron 109, 4001–4017 (2021).
+results in Figs. 3–6 are available at https://github.com/pkuzyc/            22.   Moldwin, T., Kalmenson, M. & Segev, I. The gradient clusteron: a
+DeepDendrite. The MNIST dataset is publicly available at http://yann.             model neuron that learns to solve classiﬁcation tasks via dendritic
+lecun.com/exdb/mnist. The Fashion-MNIST dataset is publicly avail-                nonlinearities, structural plasticity, and gradient descent. PLoS
+able at https://github.com/zalandoresearch/fashion-mnist. Source                  Comput. Biol. 17, e1009015 (2021).
+data are provided with this paper.                                          23.   Hodgkin, A. L. & Huxley, A. F. A quantitative description of mem-
+                                                                                  brane current and Its application to conduction and excitation in
+Code availability                                                                 nerve. J. Physiol. 117, 500–544 (1952).
+The source code of DeepDendrite as well as the models and code used         24.   Rall, W. Theory of physiological properties of dendrites. Ann. N. Y.
+to reproduce Figs. 3–6 in this study are available at https://github.com/         Acad. Sci. 96, 1071–1092 (1962).
+pkuzyc/DeepDendrite.                                                        25.   Hines, M. L. & Carnevale, N. T. The NEURON simulation environ-
+                                                                                  ment. Neural Comput. 9, 1179–1209 (1997).
+References                                                                  26.   Bower, J. M. & Beeman, D. in The Book of GENESIS: Exploring
+1.    McCulloch, W. S. & Pitts, W. A logical calculus of the ideas                Realistic Neural Models with the GEneral NEural SImulation System
+      immanent in nervous activity. Bull. Math. Biophys. 5,                       (eds Bower, J.M. & Beeman, D.) 17–27 (Springer New York, 1998).
+      115–133 (1943).                                                       27.   Hines, M. L., Eichner, H. & Schürmann, F. Neuron splitting in
+2.    LeCun, Y., Bengio, Y. & Hinton, G. Deep learning. Nature 521,               compute-bound parallel network simulations enables runtime
+      436–444 (2015).                                                             scaling with twice as many processors. J. Comput. Neurosci. 25,
+3.    Poirazi, P., Brannon, T. & Mel, B. W. Arithmetic of subthreshold            203–210 (2008).
+      synaptic summation in a model CA1 pyramidal cell. Neuron 37,          28.   Hines, M. L., Markram, H. & Schürmann, F. Fully implicit parallel
+      977–987 (2003).                                                             simulation of single neurons. J. Comput. Neurosci. 25,
+4.    London, M. & Häusser, M. Dendritic computation. Annu. Rev.                  439–448 (2008).
+      Neurosci. 28, 503–532 (2005).                                         29.   Ben-Shalom, R., Liberman, G. & Korngreen, A. Accelerating com-
+5.    Branco, T. & Häusser, M. The single dendritic branch as a funda-            partmental modeling on a graphical processing unit. Front. Neu-
+      mental functional unit in the nervous system. Curr. Opin. Neuro-            roinform. 7, 4 (2013).
+      biol. 20, 494–502 (2010).                                             30.   Tsuyuki, T., Yamamoto, Y. & Yamazaki, T. Efﬁcient numerical
+6.    Stuart, G. J. & Spruston, N. Dendritic integration: 60 years of             simulation of neuron models with spatial structure on graphics
+      progress. Nat. Neurosci. 18, 1713–1721 (2015).                              processing units. In Proc. 2016 International Conference on Neural
+7.    Poirazi, P. & Papoutsi, A. Illuminating dendritic function with             Information Processing (eds Hirose894Akiraet al.) 279–285
+      computational models. Nat. Rev. Neurosci. 21, 303–321 (2020).               (Springer International Publishing, 2016).
+
+
+
+Nature Communications | (2023)14:5798                                                                                                               15
+Article                                                                                                   https://doi.org/10.1038/s41467-023-41553-7
+
+
+31.   Vooturi, D. T., Kothapalli, K. & Bhalla, U. S. Parallelizing Hines        55.   Hines, M. Efﬁcient computation of branched nerve equations. Int.
+      Matrix Solver in Neuron Simulations on GPU. In Proc. IEEE 24th                  J. Bio-Med. Comput. 15, 69–76 (1984).
+      International Conference on High Performance Computing (HiPC)             56.   Nayebi, A. & Ganguli, S. Biologically inspired protection of deep
+      388–397 (IEEE, 2017).                                                           networks from adversarial attacks. Preprint at https://arxiv.org/
+32.   Huber, F. Efﬁcient tree solver for hines matrices on the GPU. Pre-              abs/1703.09202 (2017).
+      print at https://arxiv.org/abs/1810.12742 (2018).                         57.   Goddard, N. H. & Hood, G. Large-Scale Simulation Using Par-
+33.   Korte, B. & Vygen, J. Combinatorial Optimization Theory and                     allel GENESIS. In The Book of GENESIS: Exploring Realistic
+      Algorithms 6 edn (Springer, 2018).                                              Neural Models with the GEneral NEural SImulation System (eds
+34.   Gebali, F. Algorithms and Parallel Computing (Wiley, 2011).                     Bower James M. & Beeman David) 349-379 (Springer New
+35.   Kumbhar, P. et al. CoreNEURON: An optimized compute engine                      York, 1998).
+      for the NEURON simulator. Front. Neuroinform. 13, 63 (2019).              58.   Migliore, M., Cannia, C., Lytton, W. W., Markram, H. & Hines, M. L.
+36.   Urbanczik, R. & Senn, W. Learning by the dendritic prediction of                Parallel network simulations with NEURON. J. Comput. Neurosci.
+      somatic spiking. Neuron 81, 521–528 (2014).                                     21, 119 (2006).
+37.   Ben-Shalom, R., Aviv, A., Razon, B. & Korngreen, A. Optimizing ion        59.   Lytton, W. W. et al. Simulation neurotechnologies for advancing
+      channel models using a parallel genetic algorithm on graphical                  brain research: parallelizing large networks in NEURON. Neural
+      processors. J. Neurosci. Methods 206, 183–194 (2012).                           Comput. 28, 2063–2090 (2016).
+38.   Mascagni, M. A parallelizing algorithm for computing solutions to         60.   Valero-Lara, P. et al. cuHinesBatch: Solving multiple Hines sys-
+      arbitrarily branched cable neuron models. J. Neurosci. Methods                  tems on GPUs human brain project. In Proc. 2017 International
+      36, 105–114 (1991).                                                             Conference on Computational Science 566–575 (IEEE, 2017).
+39.   McDougal, R. A. et al. Twenty years of modelDB and beyond:                61.   Akar, N. A. et al. Arbor—A morphologically-detailed neural net-
+      building essential modeling tools for the future of neuroscience. J.            work simulation library for contemporary high-performance
+      Comput. Neurosci. 42, 1–10 (2017).                                              computing architectures. In Proc. 27th Euromicro International
+40.   Migliore, M., Messineo, L. & Ferrante, M. Dendritic Ih selectively              Conference on Parallel, Distributed and Network-Based Processing
+      blocks temporal summation of unsynchronized distal inputs in                    (PDP) 274–282 (IEEE, 2019).
+      CA1 pyramidal neurons. J. Comput. Neurosci. 16, 5–13 (2004).              62.   Ben-Shalom, R. et al. NeuroGPU: Accelerating multi-compart-
+41.   Hemond, P. et al. Distinct classes of pyramidal cells exhibit                   ment, biophysically detailed neuron simulations on GPUs. J.
+      mutually exclusive ﬁring patterns in hippocampal area CA3b.                     Neurosci. Methods 366, 109400 (2022).
+      Hippocampus 18, 411–424 (2008).                                           63.   Rempe, M. J. & Chopp, D. L. A predictor-corrector algorithm for
+42.   Hay, E., Hill, S., Schürmann, F., Markram, H. & Segev, I. Models of             reaction-diffusion equations associated with neural activity on
+      neocortical layer 5b pyramidal cells capturing a wide range of                  branched structures. SIAM J. Sci. Comput. 28, 2139–2161
+      dendritic and perisomatic active Properties. PLoS Comput. Biol. 7,              (2006).
+      e1002107 (2011).                                                          64.   Kozloski, J. & Wagner, J. An ultrascalable solution to large-scale
+43.   Masoli, S., Solinas, S. & D’Angelo, E. Action potential processing in           neural tissue simulation. Front. Neuroinform. 5, 15 (2011).
+      a detailed purkinje cell model reveals a critical role for axonal         65.   Jayant, K. et al. Targeted intracellular voltage recordings from
+      compartmentalization. Front. Cell. Neurosci. 9, 47 (2015).                      dendritic spines using quantum-dot-coated nanopipettes. Nat.
+44.   Lindroos, R. et al. Basal ganglia neuromodulation over multiple                 Nanotechnol. 12, 335–342 (2017).
+      temporal and structural scales—simulations of direct pathway              66.   Palmer, L. M. & Stuart, G. J. Membrane potential changes in den-
+      MSNs investigate the fast onset of dopaminergic effects and                     dritic spines during action potentials and synaptic input. J. Neu-
+      predict the role of Kv4.2. Front. Neural Circuits 12, 3 (2018).                 rosci. 29, 6897–6903 (2009).
+45.   Migliore, M. et al. Synaptic clusters function as odor operators in       67.   Nishiyama, J. & Yasuda, R. Biochemical computation for spine
+      the olfactory bulb. Proc. Natl Acad. Sci. USa 112,                              structural plasticity. Neuron 87, 63–75 (2015).
+      8499–8504 (2015).                                                         68.   Yuste, R. & Bonhoeffer, T. Morphological changes in dendritic
+46.   NVIDIA. CUDA C++ Programming Guide. https://docs.nvidia.com/                    spines associated with long-term synaptic plasticity. Annu. Rev.
+      cuda/cuda-c-programming-guide/index.html (2021).                                Neurosci. 24, 1071–1089 (2001).
+47.   NVIDIA. CUDA C++ Best Practices Guide. https://docs.nvidia.com/           69.   Holtmaat, A. & Svoboda, K. Experience-dependent structural
+      cuda/cuda-c-best-practices-guide/index.html (2021).                             synaptic plasticity in the mammalian brain. Nat. Rev. Neurosci. 10,
+48.   Harnett, M. T., Makara, J. K., Spruston, N., Kath, W. L. & Magee, J. C.         647–658 (2009).
+      Synaptic ampliﬁcation by dendritic spines enhances input coop-            70.   Caroni, P., Donato, F. & Muller, D. Structural plasticity upon
+      erativity. Nature 491, 599–602 (2012).                                          learning: regulation and functions. Nat. Rev. Neurosci. 13,
+49.   Chiu, C. Q. et al. Compartmentalization of GABAergic inhibition by              478–490 (2012).
+      dendritic spines. Science 340, 759–762 (2013).                            71.   Keck, T. et al. Massive restructuring of neuronal circuits during
+50.   Tønnesen, J., Katona, G., Rózsa, B. & Nägerl, U. V. Spine neck                  functional reorganization of adult visual cortex. Nat. Neurosci. 11,
+      plasticity regulates compartmentalization of synapses. Nat. Neu-                1162 (2008).
+      rosci. 17, 678–685 (2014).                                                72.   Hofer, S. B., Mrsic-Flogel, T. D., Bonhoeffer, T. & Hübener, M.
+51.   Eyal, G. et al. Human cortical pyramidal neurons: from spines to                Experience leaves a lasting structural trace in cortical circuits.
+      spikes via models. Front. Cell. Neurosci. 12, 181 (2018).                       Nature 457, 313–317 (2009).
+52.   Koch, C. & Zador, A. The function of dendritic spines: devices            73.   Trachtenberg, J. T. et al. Long-term in vivo imaging of experience-
+      subserving biochemical rather than electrical compartmentaliza-                 dependent synaptic plasticity in adult cortex. Nature 420,
+      tion. J. Neurosci. 13, 413–422 (1993).                                          788–794 (2002).
+53.   Koch, C. Dendritic spines. In Biophysics of Computation (Oxford           74.   Marik, S. A., Yamahachi, H., McManus, J. N., Szabo, G. & Gilbert, C.
+      University Press, 1999).                                                        D. Axonal dynamics of excitatory and inhibitory neurons in
+54.   Rapp, M., Yarom, Y. & Segev, I. The impact of parallel ﬁber back-               somatosensory cortex. PLoS Biol. 8, e1000395 (2010).
+      ground activity on the cable properties of cerebellar purkinje            75.   Xu, T. et al. Rapid formation and selective stabilization of synapses
+      cells. Neural Comput. 4, 518–533 (1992).                                        for enduring motor memories. Nature 462, 915–919 (2009).
+
+
+
+Nature Communications | (2023)14:5798                                                                                                                   16
+Article                                                                                                       https://doi.org/10.1038/s41467-023-41553-7
+
+
+76.   Albarran, E., Raissi, A., Jáidar, O., Shatz, C. J. & Ding, J. B. Enhancing   98.  Rauber, J., Brendel, W. & Bethge, M. Foolbox: A Python toolbox to
+      motor learning by increasing the stability of newly formed dendritic              benchmark the robustness of machine learning models. In Reli-
+      spines in the motor cortex. Neuron 109, 3298–3311 (2021).                         able Machine Learning in the Wild Workshop, 34th International
+77.   Branco, T. & Häusser, M. Synaptic integration gradients in single                 Conference on Machine Learning (2017).
+      cortical pyramidal cell dendrites. Neuron 69, 885–892 (2011).                99. Rauber, J., Zimmermann, R., Bethge, M. & Brendel, W. Foolbox
+78.   Major, G., Larkum, M. E. & Schiller, J. Active properties of neo-                 native: fast adversarial attacks to benchmark the robustness of
+      cortical pyramidal neuron dendrites. Annu. Rev. Neurosci. 36,                     machine learning models in PyTorch, TensorFlow, and JAX. J.
+      1–24 (2013).                                                                      Open Source Softw. 5, 2607 (2020).
+79.   Gidon, A. et al. Dendritic action potentials and computation in              100. Paszke, A. et al. PyTorch: An imperative style, high-performance
+      human layer 2/3 cortical neurons. Science 367, 83–87 (2020).                      deep learning library. In Advances in Neural Information Proces-
+80.   Doron, M., Chindemi, G., Muller, E., Markram, H. & Segev, I. Timed                sing Systems 32 (NeurIPS 2019) (NeurIPS, 2019).
+      synaptic inhibition shapes NMDA spikes, inﬂuencing local den-                101. He, K., Zhang, X., Ren, S. & Sun, J. Deep residual learning for image
+      dritic processing and global I/O properties of cortical neurons.                  recognition. In Proc. 2016 IEEE Conference on Computer Vision
+      Cell Rep. 21, 1550–1561 (2017).                                                   and Pattern Recognition (CVPR) 770–778 (IEEE, 2016).
+81.   Du, K. et al. Cell-type-speciﬁc inhibition of the dendritic plateau
+      potential in striatal spiny projection neurons. Proc. Natl Acad. Sci.        Acknowledgements
+      USA 114, E7612–E7621 (2017).                                                 The authors sincerely thank Dr. Rita Zhang, Daochen Shi and members at
+82.   Smith, S. L., Smith, I. T., Branco, T. & Häusser, M. Dendritic spikes        NVIDIA for the valuable technical support of GPU computing. This work
+      enhance stimulus selectivity in cortical neurons in vivo. Nature             was supported by the National Key R&D Program of China (No.
+      503, 115–120 (2013).                                                         2020AAA0130400) to K.D. and T.H., National Natural Science Founda-
+83.   Xu, N.-l et al. Nonlinear dendritic integration of sensory and motor         tion of China (No. 61088102) to T.H., National Key R&D Program of China
+      input during an active sensing task. Nature 492, 247–251 (2012).             (No. 2022ZD01163005) to L.M., Key Area R&D Program of Guangdong
+84.   Takahashi, N., Oertner, T. G., Hegemann, P. & Larkum, M. E. Active           Province (No. 2018B030338001) to T.H., National Natural Science
+      cortical dendrites modulate perception. Science 354,                         Foundation of China (No. 61825101) to Y.T., Swedish Research Council
+      1587–1590 (2016).                                                            (VR-M-2020-01652), Swedish e-Science Research Centre (SeRC), EU/
+85.   Shefﬁeld, M. E. & Dombeck, D. A. Calcium transient prevalence                Horizon 2020 No. 945539 (HBP SGA3), and KTH Digital Futures to J.H.K.,
+      across the dendritic arbour predicts place ﬁeld properties. Nature           J.H., and A.K., Swedish Research Council (VR-M-2021-01995) and EU/
+      517, 200–204 (2015).                                                         Horizon 2020 no. 945539 (HBP SGA3) to S.G. and A.K. Part of the
+86.   Markram, H. et al. Reconstruction and simulation of neocortical              simulations were enabled by resources provided by the Swedish
+      microcircuitry. Cell 163, 456–492 (2015).                                    National Infrastructure for Computing (SNIC) at PDC KTH partially fun-
+87.   Billeh, Y. N. et al. Systematic integration of structural and func-          ded by the Swedish Research Council through grant agreement no.
+      tional data into multi-scale models of mouse primary visual cortex.          2018-05973.
+      Neuron 106, 388–403 (2020).
+88.   Hjorth, J. et al. The microcircuits of striatum in silico. Proc. Natl        Author contributions
+      Acad. Sci. USA 117, 202000671 (2020).                                        K.D. conceptualized the project. K.D. and T.H. jointly supervised the
+89.   Guerguiev, J., Lillicrap, T. P. & Richards, B. A. Towards deep               project. Y.Z. and G.H. implemented DeepDendrite framework, con-
+      learning with segregated dendrites. elife 6, e22901 (2017).                  ducted all experiments and performed data analysis. L.M. provided the
+90.   Iyer, A. et al. Avoiding catastrophe: active dendrites enable multi-         support for high performance computing. Y.Z. and X.L. provided theo-
+      task learning in dynamic environments. Front. Neurorobot. 16,                retical proof for DHS method. Y.Z., G.H. and K.D. wrote the draft of the
+      846219 (2022).                                                               manuscript. J.J.J.H., A.K., Y.H., S.Z., J.H.K., Y.T. and S.G. participated in
+91.   Jones, I. S. & Kording, K. P. Might a single neuron solve interesting        discussions regarding the results. All authors contributed to the revision
+      machine learning problems through successive computations on                 of the manuscript.
+      its dendritic tree? Neural Comput. 33, 1554–1571 (2021).
+92.   Bird, A. D., Jedlicka, P. & Cuntz, H. Dendritic normalisation                Competing interests
+      improves learning in sparsely connected artiﬁcial neural net-                The authors declare no competing interests.
+      works. PLoS Comput. Biol. 17, e1009202 (2021).
+93.   Goodfellow, I. J., Shlens, J. & Szegedy, C. Explaining and harnes-           Additional information
+      sing adversarial examples. In 3rd International Conference on                Supplementary information The online version contains
+      Learning Representations (ICLR) (ICLR, 2015).                                supplementary material available at
+94.   Papernot, N., McDaniel, P. & Goodfellow, I. Transferability in               https://doi.org/10.1038/s41467-023-41553-7.
+      machine learning: from phenomena to black-box attacks using
+      adversarial samples. Preprint at https://arxiv.org/abs/1605.                 Correspondence and requests for materials should be addressed to Kai
+      07277 (2016).                                                                Du.
+95.   Lecun, Y., Bottou, L., Bengio, Y. & Haffner, P. Gradient-based
+      learning applied to document recognition. Proc. IEEE 86,                     Peer review information Nature Communications thanks Panayiota
+      2278–2324 (1998).                                                            Poirazi and the other, anonymous, reviewer(s) for their contribution to
+96.   Xiao, H., Rasul, K. & Vollgraf, R. Fashion-MNIST: a novel image              the peer review of this work. A peer review ﬁle is available.
+      dataset for benchmarking machine learning algorithms. Preprint
+      at http://arxiv.org/abs/1708.07747 (2017).                                   Reprints and permissions information is available at
+97.   Bartunov, S. et al. Assessing the scalability of biologically-               http://www.nature.com/reprints
+      motivated deep learning algorithms and architectures. In Advan-
+      ces in Neural Information Processing Systems 31 (NeurIPS 2018)               Publisher’s note Springer Nature remains neutral with regard to jur-
+      (NeurIPS, 2018).                                                             isdictional claims in published maps and institutional afﬁliations.
+
+
+
+
+Nature Communications | (2023)14:5798                                                                                                                        17
+Article                                                                     https://doi.org/10.1038/s41467-023-41553-7
+
+
+Open Access This article is licensed under a Creative Commons
+Attribution 4.0 International License, which permits use, sharing,
+adaptation, distribution and reproduction in any medium or format, as
+long as you give appropriate credit to the original author(s) and the
+source, provide a link to the Creative Commons licence, and indicate if
+changes were made. The images or other third party material in this
+article are included in the article’s Creative Commons licence, unless
+indicated otherwise in a credit line to the material. If material is not
+included in the article’s Creative Commons licence and your intended
+use is not permitted by statutory regulation or exceeds the permitted
+use, you will need to obtain permission directly from the copyright
+holder. To view a copy of this licence, visit http://creativecommons.org/
+licenses/by/4.0/.
+
+© The Author(s) 2023
+
+
+
+
+Nature Communications | (2023)14:5798                                                                              18
+

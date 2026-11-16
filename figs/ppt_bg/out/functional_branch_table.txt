@@ -1,0 +1,35 @@
+Warning: no DISPLAY environment variable.
+--No graphics will be displayed.
+845.34678 
+845.34678 
+groups 26 sections assigned 196 unique 196 total 196
+dup [] miss []
+
+IDX	GROUP	REGION	PARENT	SEC	COMP	SECTIONS
+01	SOMA	soma	-	1	1	soma[0]
+02	AXON	axon	SOMA	2	2	axon[0],axon[1]
+03	B1	basal	SOMA	7	31	dend[0],dend[1],dend[2],dend[3],dend[4],dend[5],dend[6]
+04	B2	basal	SOMA	9	25	dend[7],dend[8],dend[9],dend[10],dend[11],dend[12],dend[13],dend[14],dend[15]
+05	B3	basal	SOMA	23	59	dend[16],dend[17],dend[18],dend[19],dend[20],dend[21],dend[22],dend[23],dend[24],dend[25],dend[26],dend[27],dend[28],dend[29],dend[30],dend[31],dend[32],dend[33],dend[34],dend[35],dend[36],dend[37],dend[38]
+06	B4	basal	SOMA	3	11	dend[39],dend[40],dend[41]
+07	B5	basal	SOMA	21	65	dend[42],dend[43],dend[44],dend[45],dend[46],dend[47],dend[48],dend[49],dend[50],dend[51],dend[52],dend[53],dend[54],dend[55],dend[56],dend[57],dend[58],dend[59],dend[60],dend[61],dend[62]
+08	B6	basal	SOMA	15	55	dend[63],dend[64],dend[65],dend[66],dend[67],dend[68],dend[69],dend[70],dend[71],dend[72],dend[73],dend[74],dend[75],dend[76],dend[77]
+09	B7	basal	SOMA	1	3	dend[78]
+10	B8	basal	SOMA	5	13	dend[79],dend[80],dend[81],dend[82],dend[83]
+11	A_TRUNK_PROX	apical	SOMA	5	11	apic[0],apic[1],apic[2],apic[3],apic[4]
+12	A_TRUNK_MID	apical	A_TRUNK_PROX	4	10	apic[14],apic[20],apic[26],apic[34]
+13	A_TRUNK_DIST	apical	A_TRUNK_MID	2	16	apic[36],apic[50]
+14	A_OBL_01	apical	A_TRUNK_PROX	5	9	apic[104],apic[105],apic[106],apic[107],apic[108]
+15	A_OBL_02	apical	A_TRUNK_PROX	5	23	apic[99],apic[100],apic[101],apic[102],apic[103]
+16	A_OBL_03	apical	A_TRUNK_PROX	19	45	apic[80],apic[81],apic[82],apic[83],apic[84],apic[85],apic[86],apic[87],apic[88],apic[89],apic[90],apic[91],apic[92],apic[93],apic[94],apic[95],apic[96],apic[97],apic[98]
+17	A_OBL_04	apical	A_TRUNK_PROX	1	3	apic[79]
+18	A_OBL_05	apical	A_TRUNK_PROX	9	31	apic[5],apic[6],apic[7],apic[8],apic[9],apic[10],apic[11],apic[12],apic[13]
+19	A_OBL_06	apical	A_TRUNK_MID	5	25	apic[15],apic[16],apic[17],apic[18],apic[19]
+20	A_OBL_07	apical	A_TRUNK_MID	5	5	apic[21],apic[22],apic[23],apic[24],apic[25]
+21	A_OBL_08	apical	A_TRUNK_MID	7	17	apic[27],apic[28],apic[29],apic[30],apic[31],apic[32],apic[33]
+22	A_OBL_09	apical	A_TRUNK_MID	1	5	apic[35]
+23	A_OBL_10	apical	A_TRUNK_DIST	13	55	apic[37],apic[38],apic[39],apic[40],apic[41],apic[42],apic[43],apic[44],apic[45],apic[46],apic[47],apic[48],apic[49]
+24	A_TUFT_T1	apical	A_TRUNK_DIST	9	31	apic[51],apic[52],apic[53],apic[54],apic[55],apic[56],apic[57],apic[58],apic[59]
+25	A_TUFT_T2a	apical	A_TRUNK_DIST	8	46	apic[60],apic[61],apic[62],apic[63],apic[64],apic[65],apic[66],apic[67]
+26	A_TUFT_T2b	apical	A_TUFT_T2a	11	45	apic[68],apic[69],apic[70],apic[71],apic[72],apic[73],apic[74],apic[75],apic[76],apic[77],apic[78]
+wrote figs/ppt_bg/out/l5pc_functional_branches.csv

@@ -1,0 +1,458 @@
+[
+ {
+  "idx": 19,
+  "f": 0.85,
+  "br": 2.0,
+  "pl": 0.6,
+  "run_ms": 85.0,
+  "run_start": 20925,
+  "run_end": 24325,
+  "cai_peak": 0.8256457448005676,
+  "n_bap": 7,
+  "bap_in": 0,
+  "score": 82.76793747507901,
+  "policy": {
+   "rate_e": 210.0,
+   "rate_i": 80.0,
+   "rho": 0.75,
+   "f_tuft": 0.85,
+   "bundle_hz": 7.0,
+   "width": 5.0,
+   "bap_rate": 2.0,
+   "p_lead": 0.6,
+   "bap_amp": 4.0,
+   "bap_width": 2.0,
+   "burst_prob": 0.05,
+   "burst_n": [
+    3,
+    6
+   ],
+   "burst_isi": [
+    3.0,
+    8.0
+   ],
+   "refractory": 2.0,
+   "regularity": 0.0,
+   "jitter": 0.2,
+   "regime": "plateau"
+  }
+ },
+ {
+  "idx": 23,
+  "f": 0.85,
+  "br": 6.0,
+  "pl": 0.6,
+  "run_ms": 63.050000000000004,
+  "run_start": 25534,
+  "run_end": 28056,
+  "cai_peak": 0.7295051217079163,
+  "n_bap": 4,
+  "bap_in": 0,
+  "score": 60.88028345929223,
+  "policy": {
+   "rate_e": 210.0,
+   "rate_i": 80.0,
+   "rho": 0.75,
+   "f_tuft": 0.85,
+   "bundle_hz": 7.0,
+   "width": 5.0,
+   "bap_rate": 6.0,
+   "p_lead": 0.6,
+   "bap_amp": 4.0,
+   "bap_width": 2.0,
+   "burst_prob": 0.05,
+   "burst_n": [
+    3,
+    6
+   ],
+   "burst_isi": [
+    3.0,
+    8.0
+   ],
+   "refractory": 2.0,
+   "regularity": 0.0,
+   "jitter": 0.2,
+   "regime": "plateau"
+  }
+ },
+ {
+  "idx": 24,
+  "f": 0.85,
+  "br": 6.0,
+  "pl": 0.9,
+  "run_ms": 63.375,
+  "run_start": 34933,
+  "run_end": 37468,
+  "cai_peak": 0.8389593958854675,
+  "n_bap": 10,
+  "bap_in": 0,
+  "score": 60.6124094278902,
+  "policy": {
+   "rate_e": 210.0,
+   "rate_i": 80.0,
+   "rho": 0.75,
+   "f_tuft": 0.85,
+   "bundle_hz": 7.0,
+   "width": 5.0,
+   "bap_rate": 6.0,
+   "p_lead": 0.9,
+   "bap_amp": 4.0,
+   "bap_width": 2.0,
+   "burst_prob": 0.05,
+   "burst_n": [
+    3,
+    6
+   ],
+   "burst_isi": [
+    3.0,
+    8.0
+   ],
+   "refractory": 2.0,
+   "regularity": 0.0,
+   "jitter": 0.2,
+   "regime": "plateau"
+  }
+ },
+ {
+  "idx": 20,
+  "f": 0.85,
+  "br": 2.0,
+  "pl": 0.9,
+  "run_ms": 58.7,
+  "run_start": 8848,
+  "run_end": 11196,
+  "cai_peak": 1.0567209720611572,
+  "n_bap": 6,
+  "bap_in": 0,
+  "score": 57.73960327083026,
+  "policy": {
+   "rate_e": 210.0,
+   "rate_i": 80.0,
+   "rho": 0.75,
+   "f_tuft": 0.85,
+   "bundle_hz": 7.0,
+   "width": 5.0,
+   "bap_rate": 2.0,
+   "p_lead": 0.9,
+   "bap_amp": 4.0,
+   "bap_width": 2.0,
+   "burst_prob": 0.05,
+   "burst_n": [
+    3,
+    6
+   ],
+   "burst_isi": [
+    3.0,
+    8.0
+   ],
+   "refractory": 2.0,
+   "regularity": 0.0,
+   "jitter": 0.2,
+   "regime": "plateau"
+  }
+ },
+ {
+  "idx": 25,
+  "f": 0.95,
+  "br": 2.0,
+  "pl": 0.6,
+  "run_ms": 58.150000000000006,
+  "run_start": 3234,
+  "run_end": 5560,
+  "cai_peak": 0.6417331099510193,
+  "n_bap": 5,
+  "bap_in": 0,
+  "score": 55.223544477879,
+  "policy": {
+   "rate_e": 210.0,
+   "rate_i": 80.0,
+   "rho": 0.75,
+   "f_tuft": 0.95,
+   "bundle_hz": 7.0,
+   "width": 5.0,
+   "bap_rate": 2.0,
+   "p_lead": 0.6,
+   "bap_amp": 4.0,
+   "bap_width": 2.0,
+   "burst_prob": 0.05,
+   "burst_n": [
+    3,
+    6
+   ],
+   "burst_isi": [
+    3.0,
+    8.0
+   ],
+   "refractory": 2.0,
+   "regularity": 0.0,
+   "jitter": 0.2,
+   "regime": "plateau"
+  }
+ },
+ {
+  "idx": 27,
+  "f": 0.95,
+  "br": 4.0,
+  "pl": 0.6,
+  "run_ms": 47.825,
+  "run_start": 33617,
+  "run_end": 35530,
+  "cai_peak": 0.900615394115448,
+  "n_bap": 7,
+  "bap_in": 0,
+  "score": 45.970393665182556,
+  "policy": {
+   "rate_e": 210.0,
+   "rate_i": 80.0,
+   "rho": 0.75,
+   "f_tuft": 0.95,
+   "bundle_hz": 7.0,
+   "width": 5.0,
+   "bap_rate": 4.0,
+   "p_lead": 0.6,
+   "bap_amp": 4.0,
+   "bap_width": 2.0,
+   "burst_prob": 0.05,
+   "burst_n": [
+    3,
+    6
+   ],
+   "burst_isi": [
+    3.0,
+    8.0
+   ],
+   "refractory": 2.0,
+   "regularity": 0.0,
+   "jitter": 0.2,
+   "regime": "plateau"
+  }
+ },
+ {
+  "idx": 26,
+  "f": 0.95,
+  "br": 2.0,
+  "pl": 0.9,
+  "run_ms": 45.400000000000006,
+  "run_start": 30573,
+  "run_end": 32389,
+  "cai_peak": 1.3639699220657349,
+  "n_bap": 11,
+  "bap_in": 0,
+  "score": 44.54804793787762,
+  "policy": {
+   "rate_e": 210.0,
+   "rate_i": 80.0,
+   "rho": 0.75,
+   "f_tuft": 0.95,
+   "bundle_hz": 7.0,
+   "width": 5.0,
+   "bap_rate": 2.0,
+   "p_lead": 0.9,
+   "bap_amp": 4.0,
+   "bap_width": 2.0,
+   "burst_prob": 0.05,
+   "burst_n": [
+    3,
+    6
+   ],
+   "burst_isi": [
+    3.0,
+    8.0
+   ],
+   "refractory": 2.0,
+   "regularity": 0.0,
+   "jitter": 0.2,
+   "regime": "plateau"
+  }
+ },
+ {
+  "idx": 22,
+  "f": 0.85,
+  "br": 4.0,
+  "pl": 0.9,
+  "run_ms": 45.175000000000004,
+  "run_start": 18283,
+  "run_end": 20090,
+  "cai_peak": 0.8688185214996338,
+  "n_bap": 11,
+  "bap_in": 0,
+  "score": 42.364290711462836,
+  "policy": {
+   "rate_e": 210.0,
+   "rate_i": 80.0,
+   "rho": 0.75,
+   "f_tuft": 0.85,
+   "bundle_hz": 7.0,
+   "width": 5.0,
+   "bap_rate": 4.0,
+   "p_lead": 0.9,
+   "bap_amp": 4.0,
+   "bap_width": 2.0,
+   "burst_prob": 0.05,
+   "burst_n": [
+    3,
+    6
+   ],
+   "burst_isi": [
+    3.0,
+    8.0
+   ],
+   "refractory": 2.0,
+   "regularity": 0.0,
+   "jitter": 0.2,
+   "regime": "plateau"
+  }
+ },
+ {
+  "idx": 29,
+  "f": 0.95,
+  "br": 6.0,
+  "pl": 0.6,
+  "run_ms": 44.725,
+  "run_start": 23056,
+  "run_end": 24845,
+  "cai_peak": 0.8756250143051147,
+  "n_bap": 10,
+  "bap_in": 0,
+  "score": 42.148181602209156,
+  "policy": {
+   "rate_e": 210.0,
+   "rate_i": 80.0,
+   "rho": 0.75,
+   "f_tuft": 0.95,
+   "bundle_hz": 7.0,
+   "width": 5.0,
+   "bap_rate": 6.0,
+   "p_lead": 0.6,
+   "bap_amp": 4.0,
+   "bap_width": 2.0,
+   "burst_prob": 0.05,
+   "burst_n": [
+    3,
+    6
+   ],
+   "burst_isi": [
+    3.0,
+    8.0
+   ],
+   "refractory": 2.0,
+   "regularity": 0.0,
+   "jitter": 0.2,
+   "regime": "plateau"
+  }
+ },
+ {
+  "idx": 30,
+  "f": 0.95,
+  "br": 6.0,
+  "pl": 0.9,
+  "run_ms": 40.95,
+  "run_start": 34403,
+  "run_end": 36041,
+  "cai_peak": 1.2482094764709473,
+  "n_bap": 11,
+  "bap_in": 0,
+  "score": 39.71287475791498,
+  "policy": {
+   "rate_e": 210.0,
+   "rate_i": 80.0,
+   "rho": 0.75,
+   "f_tuft": 0.95,
+   "bundle_hz": 7.0,
+   "width": 5.0,
+   "bap_rate": 6.0,
+   "p_lead": 0.9,
+   "bap_amp": 4.0,
+   "bap_width": 2.0,
+   "burst_prob": 0.05,
+   "burst_n": [
+    3,
+    6
+   ],
+   "burst_isi": [
+    3.0,
+    8.0
+   ],
+   "refractory": 2.0,
+   "regularity": 0.0,
+   "jitter": 0.2,
+   "regime": "plateau"
+  }
+ },
+ {
+  "idx": 21,
+  "f": 0.85,
+  "br": 4.0,
+  "pl": 0.6,
+  "run_ms": 46.45,
+  "run_start": 15898,
+  "run_end": 17756,
+  "cai_peak": 0.7742655277252197,
+  "n_bap": 6,
+  "bap_in": 1,
+  "score": 19.138899243575867,
+  "policy": {
+   "rate_e": 210.0,
+   "rate_i": 80.0,
+   "rho": 0.75,
+   "f_tuft": 0.85,
+   "bundle_hz": 7.0,
+   "width": 5.0,
+   "bap_rate": 4.0,
+   "p_lead": 0.6,
+   "bap_amp": 4.0,
+   "bap_width": 2.0,
+   "burst_prob": 0.05,
+   "burst_n": [
+    3,
+    6
+   ],
+   "burst_isi": [
+    3.0,
+    8.0
+   ],
+   "refractory": 2.0,
+   "regularity": 0.0,
+   "jitter": 0.2,
+   "regime": "plateau"
+  }
+ },
+ {
+  "idx": 28,
+  "f": 0.95,
+  "br": 4.0,
+  "pl": 0.9,
+  "run_ms": 60.1,
+  "run_start": 20151,
+  "run_end": 22555,
+  "cai_peak": 0.8130474090576172,
+  "n_bap": 16,
+  "bap_in": 2,
+  "score": 6.001158707184014,
+  "policy": {
+   "rate_e": 210.0,
+   "rate_i": 80.0,
+   "rho": 0.75,
+   "f_tuft": 0.95,
+   "bundle_hz": 7.0,
+   "width": 5.0,
+   "bap_rate": 4.0,
+   "p_lead": 0.9,
+   "bap_amp": 4.0,
+   "bap_width": 2.0,
+   "burst_prob": 0.05,
+   "burst_n": [
+    3,
+    6
+   ],
+   "burst_isi": [
+    3.0,
+    8.0
+   ],
+   "refractory": 2.0,
+   "regularity": 0.0,
+   "jitter": 0.2,
+   "regime": "plateau"
+  }
+ }
+]
